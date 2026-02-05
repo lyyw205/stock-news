@@ -5,20 +5,20 @@ import { extractTicker } from '@/lib/ticker/extract';
 
 export const RSS_SOURCES = [
   {
-    name: 'Naver Finance - 증권',
-    url: 'https://finance.naver.com/news/news_list.naver?mode=LSS3D&section_id=101&section_id2=258&section_id3=401&type=rss',
+    name: '연합뉴스 경제',
+    url: 'https://www.yna.co.kr/rss/economy.xml',
   },
   {
-    name: 'Naver Finance - 종목',
-    url: 'https://finance.naver.com/news/news_list.naver?mode=LSS2D&section_id=101&section_id2=258&type=rss',
+    name: '매일경제 경제',
+    url: 'https://www.mk.co.kr/rss/30100041/',
   },
   {
-    name: 'Hankyung - 증권',
-    url: 'https://www.hankyung.com/feed/stock',
+    name: '연합뉴스 산업',
+    url: 'https://www.yna.co.kr/rss/industry.xml',
   },
   {
-    name: 'Daum Finance',
-    url: 'https://finance.daum.net/api/news/category/STOCK.rss',
+    name: '연합뉴스 IT/과학',
+    url: 'https://www.yna.co.kr/rss/it.xml',
   },
 ];
 

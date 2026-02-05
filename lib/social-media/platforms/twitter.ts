@@ -1,8 +1,9 @@
 /**
- * Twitter Mock Publisher
- * Simulates posting to Twitter (X) with realistic success/failure rates
+ * Twitter/X Publisher
+ * Posts tweets using Twitter API v2 with OAuth 1.0a
  */
 
+import crypto from 'crypto';
 import {
   PlatformPublisher,
   FormattedContent,
@@ -11,11 +12,38 @@ import {
   PLATFORM_CONFIGS,
 } from '../types';
 
+const TWITTER_API_BASE = 'https://api.twitter.com/2';
+
 export class TwitterPublisher implements PlatformPublisher {
   name = 'twitter' as const;
   private config = PLATFORM_CONFIGS.twitter;
 
+  private apiKey: string;
+  private apiSecret: string;
+  private accessToken: string;
+  private accessTokenSecret: string;
+
+  constructor() {
+    this.apiKey = process.env.TWITTER_API_KEY || '';
+    this.apiSecret = process.env.TWITTER_API_SECRET || '';
+    this.accessToken = process.env.TWITTER_ACCESS_TOKEN || '';
+    this.accessTokenSecret = process.env.TWITTER_ACCESS_TOKEN_SECRET || '';
+  }
+
   async publish(content: FormattedContent): Promise<PublishResult> {
+    const timestamp = new Date();
+
+    // Check configuration
+    if (!this.apiKey || !this.apiSecret || !this.accessToken || !this.accessTokenSecret) {
+      return {
+        platform: this.name,
+        success: false,
+        error: 'Twitter API credentials not configured',
+        errorCode: ErrorCode.AUTH_FAILED,
+        timestamp,
+      };
+    }
+
     // Validate content length (280 character limit)
     if (content.text.length > (this.config.maxLength || 280)) {
       return {
@@ -23,97 +51,126 @@ export class TwitterPublisher implements PlatformPublisher {
         success: false,
         error: 'Tweet exceeds 280 character limit',
         errorCode: ErrorCode.CONTENT_TOO_LONG,
-        timestamp: new Date(),
+        timestamp,
       };
     }
 
-    // Simulate network delay
-    await this.simulateDelay();
+    try {
+      const url = `${TWITTER_API_BASE}/tweets`;
+      const body = JSON.stringify({ text: content.text });
 
-    // Simulate success/failure based on configured rate
-    const isSuccess = Math.random() < (this.config.successRate || 0.90);
+      const authHeader = this.generateOAuthHeader('POST', url);
 
-    const timestamp = new Date();
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
 
-    if (isSuccess) {
+      const data = await response.json();
+
+      if (response.ok && data.data) {
+        return {
+          platform: this.name,
+          success: true,
+          messageId: data.data.id,
+          timestamp,
+          responseData: {
+            id: data.data.id,
+            text: data.data.text,
+          },
+        };
+      }
+
+      // Handle Twitter API errors
+      const errorMessage = data.detail || data.title || 'Unknown Twitter error';
+      const errorCode = this.mapTwitterError(response.status);
+
       return {
         platform: this.name,
-        success: true,
-        messageId: this.generateMockTweetId(),
+        success: false,
+        error: errorMessage,
+        errorCode,
         timestamp,
-        responseData: {
-          id: this.generateMockTweetId(),
-          text: content.text,
-          created_at: timestamp.toISOString(),
-          author_id: this.getMockAuthorId(),
-          public_metrics: {
-            retweet_count: 0,
-            reply_count: 0,
-            like_count: 0,
-            quote_count: 0,
-          },
-        },
+        responseData: data,
+      };
+    } catch (error) {
+      return {
+        platform: this.name,
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+        errorCode: ErrorCode.NETWORK_ERROR,
+        timestamp,
       };
     }
+  }
 
-    // Simulate various failure scenarios
-    const failureScenario = this.getRandomFailureScenario();
-
-    return {
-      platform: this.name,
-      success: false,
-      error: failureScenario.message,
-      errorCode: failureScenario.code,
-      timestamp,
-      responseData: {
-        errors: [
-          {
-            code: failureScenario.apiCode,
-            message: failureScenario.message,
-          },
-        ],
-      },
+  private generateOAuthHeader(method: string, url: string): string {
+    const oauthParams: Record<string, string> = {
+      oauth_consumer_key: this.apiKey,
+      oauth_token: this.accessToken,
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+      oauth_nonce: crypto.randomBytes(16).toString('hex'),
+      oauth_version: '1.0',
     };
+
+    // Create signature base string
+    const sortedParams = Object.keys(oauthParams)
+      .sort()
+      .map(key => `${this.percentEncode(key)}=${this.percentEncode(oauthParams[key])}`)
+      .join('&');
+
+    const signatureBaseString = [
+      method.toUpperCase(),
+      this.percentEncode(url),
+      this.percentEncode(sortedParams),
+    ].join('&');
+
+    // Create signing key
+    const signingKey = `${this.percentEncode(this.apiSecret)}&${this.percentEncode(this.accessTokenSecret)}`;
+
+    // Generate signature
+    const signature = crypto
+      .createHmac('sha1', signingKey)
+      .update(signatureBaseString)
+      .digest('base64');
+
+    oauthParams['oauth_signature'] = signature;
+
+    // Build Authorization header
+    const authHeader = 'OAuth ' + Object.keys(oauthParams)
+      .sort()
+      .map(key => `${this.percentEncode(key)}="${this.percentEncode(oauthParams[key])}"`)
+      .join(', ');
+
+    return authHeader;
   }
 
-  private simulateDelay(): Promise<void> {
-    const delay = Math.random() * 400 + 100; // 100-500ms
-    return new Promise((resolve) => setTimeout(resolve, delay));
+  private percentEncode(str: string): string {
+    return encodeURIComponent(str)
+      .replace(/!/g, '%21')
+      .replace(/\*/g, '%2A')
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29');
   }
 
-  private generateMockTweetId(): string {
-    return `tw_${Date.now()}${Math.floor(Math.random() * 10000)}`;
-  }
-
-  private getMockAuthorId(): string {
-    return '1234567890123456789'; // Mock user ID
-  }
-
-  private getRandomFailureScenario() {
-    const scenarios = [
-      {
-        code: ErrorCode.RATE_LIMIT,
-        apiCode: 429,
-        message: 'Rate limit exceeded',
-      },
-      {
-        code: ErrorCode.NETWORK_ERROR,
-        apiCode: 503,
-        message: 'Service Unavailable',
-      },
-      {
-        code: ErrorCode.DUPLICATE_POST,
-        apiCode: 403,
-        message: 'Status is a duplicate',
-      },
-      {
-        code: ErrorCode.AUTH_FAILED,
-        apiCode: 401,
-        message: 'Unauthorized: Authentication credentials were missing or incorrect',
-      },
-    ];
-
-    return scenarios[Math.floor(Math.random() * scenarios.length)];
+  private mapTwitterError(statusCode: number): ErrorCode {
+    switch (statusCode) {
+      case 429:
+        return ErrorCode.RATE_LIMIT;
+      case 400:
+        return ErrorCode.INVALID_CONTENT;
+      case 401:
+      case 403:
+        return ErrorCode.AUTH_FAILED;
+      default:
+        return ErrorCode.NETWORK_ERROR;
+    }
   }
 }
 

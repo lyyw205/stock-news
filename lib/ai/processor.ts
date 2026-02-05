@@ -1,16 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
-import { filterNews } from './filter';
-import { summarizeNewsWithScores } from './summarize';
+import { scoreNewsOnly } from './score';
+import { summarizeNews } from './summarize';
+import { autoPublishArticle } from '@/lib/social-media/auto-publisher';
 import {
   findExistingDuplicate,
   calculateCredibility,
   type NewsArticleForDedup,
 } from '@/lib/services/deduplication';
+// Note: For further optimization, consider using batchScoreArticles from './batch-processor'
+// to process non-duplicate articles in parallel batches
 
 export interface ProcessResult {
   processed: number;
-  filtered: number;
-  summarized: number;
+  scored: number; // Articles scored (replaces filtered)
+  autoPublished: number; // Articles auto-published (≥80 score)
   deduplicated: number; // 중복으로 판단된 뉴스 수
   errors: number;
 }
@@ -41,16 +44,16 @@ export async function processUnprocessedArticles(
   if (!articles || articles.length === 0) {
     return {
       processed: 0,
-      filtered: 0,
-      summarized: 0,
+      scored: 0,
+      autoPublished: 0,
       deduplicated: 0,
       errors: 0,
     };
   }
 
   let processedCount = 0;
-  let filteredCount = 0;
-  let summarizedCount = 0;
+  let scoredCount = 0;
+  let autoPublishedCount = 0;
   let deduplicatedCount = 0;
   let errorCount = 0;
 
@@ -127,59 +130,86 @@ export async function processUnprocessedArticles(
         continue;
       }
 
-      // Step 1: Filter news
-      const filterResult = await filterNews(
+      // Step 1: Score news (without summary generation)
+      const scoreResult = await scoreNewsOnly(
         article.title,
         article.description || '',
       );
 
-      if (!filterResult.isUseful) {
-        // Mark as processed but don't create summary
-        await supabase
-          .from('news_articles')
-          .update({ is_processed: true })
-          .eq('id', article.id);
+      scoredCount++;
 
-        processedCount++;
-        continue;
-      }
+      // Step 2: Save scores to database (summary_text = NULL initially)
+      const { data: summaryData, error: summaryError } = await supabase
+        .from('summaries')
+        .insert({
+          article_id: article.id,
+          summary_text: null, // Will be generated on-demand or for auto-publish
+          is_useful: true, // All articles are useful now (no filter step)
+          confidence: 1.0, // No filter confidence
+          // Visual scores (for radar chart)
+          score_impact: scoreResult.scores.visual.impact,
+          score_urgency: scoreResult.scores.visual.urgency,
+          score_certainty: scoreResult.scores.visual.certainty,
+          score_durability: scoreResult.scores.visual.durability,
+          score_attention: scoreResult.scores.visual.attention,
+          score_relevance: scoreResult.scores.visual.relevance,
+          // Hidden scores (for calculation only)
+          score_sector_impact: scoreResult.scores.hidden.sectorImpact,
+          score_institutional_interest: scoreResult.scores.hidden.institutionalInterest,
+          score_volatility: scoreResult.scores.hidden.volatility,
+          // Sentiment and total
+          sentiment: scoreResult.scores.sentiment,
+          total_score: scoreResult.scores.totalScore,
+          score_reasoning: scoreResult.scores.reasoning,
+          auto_published: false, // Will be set to true if auto-published
+        })
+        .select('id')
+        .single();
 
-      filteredCount++;
-
-      // Step 2: Generate summary with scores
-      const summaryResult = await summarizeNewsWithScores(
-        article.title,
-        article.description || '',
-      );
-
-      // Step 3: Save summary with scores
-      const { error: summaryError } = await supabase.from('summaries').insert({
-        article_id: article.id,
-        summary_text: summaryResult.summary,
-        is_useful: filterResult.isUseful,
-        confidence: filterResult.confidence,
-        // Visual scores (for radar chart)
-        score_impact: summaryResult.scores.visual.impact,
-        score_urgency: summaryResult.scores.visual.urgency,
-        score_certainty: summaryResult.scores.visual.certainty,
-        score_durability: summaryResult.scores.visual.durability,
-        score_attention: summaryResult.scores.visual.attention,
-        score_relevance: summaryResult.scores.visual.relevance,
-        // Hidden scores (for calculation only)
-        score_sector_impact: summaryResult.scores.hidden.sectorImpact,
-        score_institutional_interest: summaryResult.scores.hidden.institutionalInterest,
-        score_volatility: summaryResult.scores.hidden.volatility,
-        // Sentiment and total
-        sentiment: summaryResult.scores.sentiment,
-        total_score: summaryResult.scores.totalScore,
-        score_reasoning: summaryResult.scores.reasoning,
-      });
-
-      if (summaryError) {
-        console.error(`Failed to save summary for article ${article.id}:`, summaryError);
+      if (summaryError || !summaryData) {
+        console.error(`Failed to save scores for article ${article.id}:`, summaryError);
         errorCount++;
         continue;
       }
+
+      // Step 3: Check if article should be auto-published (≥80 score)
+      const totalScore = scoreResult.scores.totalScore;
+      if (totalScore >= 80) {
+        try {
+          // Generate summary for auto-published articles
+          const summaryTextResult = await summarizeNews(
+            article.title,
+            article.description || '',
+          );
+
+          // Update summary with generated text
+          await supabase
+            .from('summaries')
+            .update({ summary_text: summaryTextResult.summary })
+            .eq('id', summaryData.id);
+
+          // Auto-publish to all platforms
+          const autoPublishResult = await autoPublishArticle(article.id, totalScore);
+
+          if (autoPublishResult.attempted) {
+            // Mark as auto-published
+            await supabase
+              .from('summaries')
+              .update({
+                auto_published: true,
+                auto_published_at: new Date().toISOString(),
+              })
+              .eq('id', summaryData.id);
+
+            autoPublishedCount++;
+          }
+        } catch (autoPublishError) {
+          console.error(`Error auto-publishing article ${article.id}:`, autoPublishError);
+          // Continue processing even if auto-publish fails
+        }
+      }
+      // Articles with score <80 remain with summary_text = NULL
+      // They will appear in dashboard for manual selection
 
       // Step 4: Mark article as processed and initialize source tracking
       await supabase
@@ -192,7 +222,6 @@ export async function processUnprocessedArticles(
         .eq('id', article.id);
 
       processedCount++;
-      summarizedCount++;
     } catch (error) {
       console.error(`Error processing article ${article.id}:`, error);
       errorCount++;
@@ -201,8 +230,8 @@ export async function processUnprocessedArticles(
 
   return {
     processed: processedCount,
-    filtered: filteredCount,
-    summarized: summarizedCount,
+    scored: scoredCount,
+    autoPublished: autoPublishedCount,
     deduplicated: deduplicatedCount,
     errors: errorCount,
   };

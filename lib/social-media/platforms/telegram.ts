@@ -1,6 +1,6 @@
 /**
- * Telegram Mock Publisher
- * Simulates posting to Telegram with realistic success/failure rates
+ * Telegram Publisher
+ * Posts to Telegram channel using Bot API
  */
 
 import {
@@ -8,92 +8,159 @@ import {
   FormattedContent,
   PublishResult,
   ErrorCode,
-  PLATFORM_CONFIGS,
 } from '../types';
+
+const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
 
 export class TelegramPublisher implements PlatformPublisher {
   name = 'telegram' as const;
-  private config = PLATFORM_CONFIGS.telegram;
+  private botToken: string;
+  private chatId: string;
+
+  constructor() {
+    this.botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+    this.chatId = process.env.TELEGRAM_CHAT_ID || '';
+  }
 
   async publish(content: FormattedContent): Promise<PublishResult> {
-    // Simulate network delay
-    await this.simulateDelay();
-
-    // Simulate success/failure based on configured rate
-    const isSuccess = Math.random() < (this.config.successRate || 0.95);
-
     const timestamp = new Date();
 
-    if (isSuccess) {
+    // Check configuration
+    if (!this.botToken || !this.chatId) {
       return {
         platform: this.name,
-        success: true,
-        messageId: this.generateMockMessageId(),
+        success: false,
+        error: 'Telegram bot token or chat ID not configured',
+        errorCode: ErrorCode.AUTH_FAILED,
         timestamp,
-        responseData: {
-          chat_id: this.getMockChatId(),
-          message_id: this.generateMockMessageId(),
-          text: content.text,
-          date: Math.floor(timestamp.getTime() / 1000),
-        },
       };
     }
 
-    // Simulate various failure scenarios
-    const failureScenario = this.getRandomFailureScenario();
+    try {
+      const url = `${TELEGRAM_API_BASE}${this.botToken}/sendMessage`;
 
-    return {
-      platform: this.name,
-      success: false,
-      error: failureScenario.message,
-      errorCode: failureScenario.code,
-      timestamp,
-      responseData: {
-        ok: false,
-        error_code: failureScenario.apiCode,
-        description: failureScenario.message,
-      },
-    };
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: this.chatId,
+          text: content.text,
+          parse_mode: 'HTML',
+          disable_web_page_preview: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        return {
+          platform: this.name,
+          success: true,
+          messageId: String(data.result.message_id),
+          timestamp,
+          responseData: {
+            chat_id: data.result.chat.id,
+            message_id: data.result.message_id,
+            date: data.result.date,
+          },
+        };
+      }
+
+      // Handle Telegram API errors
+      const errorCode = this.mapTelegramError(data.error_code);
+      return {
+        platform: this.name,
+        success: false,
+        error: data.description || 'Unknown Telegram error',
+        errorCode,
+        timestamp,
+        responseData: data,
+      };
+    } catch (error) {
+      return {
+        platform: this.name,
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+        errorCode: ErrorCode.NETWORK_ERROR,
+        timestamp,
+      };
+    }
   }
 
-  private simulateDelay(): Promise<void> {
-    const delay = Math.random() * 400 + 100; // 100-500ms
-    return new Promise((resolve) => setTimeout(resolve, delay));
+  async updateMessage(messageId: string, content: FormattedContent): Promise<PublishResult> {
+    const timestamp = new Date();
+
+    if (!this.botToken || !this.chatId) {
+      return {
+        platform: this.name,
+        success: false,
+        error: 'Telegram bot token or chat ID not configured',
+        errorCode: ErrorCode.AUTH_FAILED,
+        timestamp,
+      };
+    }
+
+    try {
+      const url = `${TELEGRAM_API_BASE}${this.botToken}/editMessageText`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: this.chatId,
+          message_id: parseInt(messageId, 10),
+          text: content.text,
+          parse_mode: 'HTML',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        return {
+          platform: this.name,
+          success: true,
+          messageId: String(data.result.message_id),
+          timestamp,
+          responseData: data.result,
+        };
+      }
+
+      return {
+        platform: this.name,
+        success: false,
+        error: data.description || 'Failed to update message',
+        errorCode: this.mapTelegramError(data.error_code),
+        timestamp,
+        responseData: data,
+      };
+    } catch (error) {
+      return {
+        platform: this.name,
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+        errorCode: ErrorCode.NETWORK_ERROR,
+        timestamp,
+      };
+    }
   }
 
-  private generateMockMessageId(): string {
-    return `tg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private getMockChatId(): string {
-    return '-1001234567890'; // Mock channel ID
-  }
-
-  private getRandomFailureScenario() {
-    const scenarios = [
-      {
-        code: ErrorCode.RATE_LIMIT,
-        apiCode: 429,
-        message: 'Too Many Requests: retry after 30 seconds',
-      },
-      {
-        code: ErrorCode.NETWORK_ERROR,
-        apiCode: 500,
-        message: 'Internal Server Error',
-      },
-      {
-        code: ErrorCode.INVALID_CONTENT,
-        apiCode: 400,
-        message: 'Bad Request: message is too long',
-      },
-      {
-        code: ErrorCode.DUPLICATE_POST,
-        apiCode: 400,
-        message: 'Bad Request: message is not modified',
-      },
-    ];
-
-    return scenarios[Math.floor(Math.random() * scenarios.length)];
+  private mapTelegramError(telegramErrorCode: number): ErrorCode {
+    switch (telegramErrorCode) {
+      case 429:
+        return ErrorCode.RATE_LIMIT;
+      case 400:
+        return ErrorCode.INVALID_CONTENT;
+      case 401:
+      case 403:
+        return ErrorCode.AUTH_FAILED;
+      default:
+        return ErrorCode.NETWORK_ERROR;
+    }
   }
 }
 

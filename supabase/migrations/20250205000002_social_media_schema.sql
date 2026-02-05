@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS public.social_media_posts (
 );
 
 -- Create indexes for social_media_posts
-CREATE INDEX idx_social_posts_article ON public.social_media_posts(article_id);
-CREATE INDEX idx_social_posts_status ON public.social_media_posts(status);
-CREATE INDEX idx_social_posts_created ON public.social_media_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_social_posts_article ON public.social_media_posts(article_id);
+CREATE INDEX IF NOT EXISTS idx_social_posts_status ON public.social_media_posts(status);
+CREATE INDEX IF NOT EXISTS idx_social_posts_created ON public.social_media_posts(created_at DESC);
 
 -- Create social_media_log table for detailed platform-specific logs
 CREATE TABLE IF NOT EXISTS public.social_media_log (
@@ -39,11 +39,11 @@ CREATE TABLE IF NOT EXISTS public.social_media_log (
 );
 
 -- Create indexes for social_media_log
-CREATE INDEX idx_social_log_post ON public.social_media_log(post_id);
-CREATE INDEX idx_social_log_platform ON public.social_media_log(platform);
-CREATE INDEX idx_social_log_article ON public.social_media_log(article_id);
-CREATE INDEX idx_social_log_status ON public.social_media_log(status);
-CREATE INDEX idx_social_log_created ON public.social_media_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_social_log_post ON public.social_media_log(post_id);
+CREATE INDEX IF NOT EXISTS idx_social_log_platform ON public.social_media_log(platform);
+CREATE INDEX IF NOT EXISTS idx_social_log_article ON public.social_media_log(article_id);
+CREATE INDEX IF NOT EXISTS idx_social_log_status ON public.social_media_log(status);
+CREATE INDEX IF NOT EXISTS idx_social_log_created ON public.social_media_log(created_at DESC);
 
 -- Add social media tracking columns to summaries table
 ALTER TABLE public.summaries
@@ -63,6 +63,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_social_posts_updated_at ON public.social_media_posts;
 CREATE TRIGGER trigger_social_posts_updated_at
   BEFORE UPDATE ON public.social_media_posts
   FOR EACH ROW

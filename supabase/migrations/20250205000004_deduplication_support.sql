@@ -54,7 +54,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 트리거 생성
+-- 트리거 생성 (idempotent)
 DROP TRIGGER IF EXISTS trigger_update_news_credibility ON news_articles;
 CREATE TRIGGER trigger_update_news_credibility
   AFTER INSERT OR UPDATE OF source_count ON news_articles

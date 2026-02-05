@@ -71,30 +71,38 @@ ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_log ENABLE ROW LEVEL SECURITY;
 
 -- Users can only read/update their own data
+DROP POLICY IF EXISTS "Users can view own data" ON public.users;
 CREATE POLICY "Users can view own data" ON public.users
   FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own data" ON public.users;
 CREATE POLICY "Users can update own data" ON public.users
   FOR UPDATE USING (auth.uid() = id);
 
 -- Subscriptions policies
+DROP POLICY IF EXISTS "Users can view own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can view own subscriptions" ON public.subscriptions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can create own subscriptions" ON public.subscriptions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users can delete own subscriptions" ON public.subscriptions
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Notification log policies
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notification_log;
 CREATE POLICY "Users can view own notifications" ON public.notification_log
   FOR SELECT USING (auth.uid() = user_id);
 
 -- News articles and summaries are public (read-only for authenticated users)
+DROP POLICY IF EXISTS "Authenticated users can view news" ON public.news_articles;
 CREATE POLICY "Authenticated users can view news" ON public.news_articles
   FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users can view summaries" ON public.summaries;
 CREATE POLICY "Authenticated users can view summaries" ON public.summaries
   FOR SELECT USING (auth.role() = 'authenticated');
 
@@ -108,6 +116,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger for users table
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW

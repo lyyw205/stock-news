@@ -141,33 +141,15 @@ export function calculateTotalScore(
 }
 
 /**
- * 점수에 따른 등급
+ * Score grades and labels
+ * Import from centralized config
  */
-export type ScoreGrade = 'S' | 'A' | 'B' | 'C' | 'D';
-
-export function getScoreGrade(totalScore: number): ScoreGrade {
-  if (totalScore >= 80) return 'S';
-  if (totalScore >= 65) return 'A';
-  if (totalScore >= 50) return 'B';
-  if (totalScore >= 35) return 'C';
-  return 'D';
-}
-
-export const GRADE_LABELS: Record<ScoreGrade, string> = {
-  S: '핵심 뉴스',
-  A: '중요 뉴스',
-  B: '일반 뉴스',
-  C: '참고 뉴스',
-  D: '낮은 중요도',
-};
-
-export const GRADE_COLORS: Record<ScoreGrade, string> = {
-  S: '#7C3AED', // purple-600
-  A: '#2563EB', // blue-600
-  B: '#059669', // emerald-600
-  C: '#D97706', // amber-600
-  D: '#6B7280', // gray-500
-};
+export {
+  type ScoreGrade,
+  getScoreGrade,
+  GRADE_LABELS,
+  GRADE_COLORS,
+} from '../config/scores';
 
 /**
  * 점수 축 라벨 (육각 그래프용)

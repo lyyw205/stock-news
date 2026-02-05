@@ -21,6 +21,20 @@ export function getModel(modelName: string = 'gemini-2.0-flash-exp') {
   return client.getGenerativeModel({ model: modelName });
 }
 
+/**
+ * Generate content (simplified without caching)
+ * Note: Caching requires @google/generative-ai v0.2.0+
+ * Current version doesn't support CachedContent API
+ */
+export async function generateContentWithCache(
+  prompt: string,
+  retries: number = 3
+): Promise<string> {
+  // For now, just use regular generateContent
+  // TODO: Upgrade to @google/generative-ai v0.2.0+ for caching support
+  return generateContent(prompt, retries);
+}
+
 export async function generateContent(
   prompt: string,
   retries: number = 3,

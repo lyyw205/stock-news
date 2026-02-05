@@ -146,3 +146,51 @@ export function formatSummarizeWithScoresPrompt(
     description,
   );
 }
+
+export const SCORE_ONLY_PROMPT = `당신은 한국 주식 뉴스 점수 평가 전문가입니다.
+
+다음 뉴스를 투자자 관점에서 평가하여 점수를 산정해주세요. 요약은 생성하지 마세요.
+
+## 뉴스 정보
+제목: {title}
+내용: {description}
+
+## 점수 산정 기준 (각 1-10점)
+
+### 시각화용 6가지 지표
+1. impact (영향력): 회사 실적에 미치는 영향 규모 (1=미미, 10=큰 영향)
+2. urgency (긴급성): 주가 반영 속도 (1=장기, 10=즉시)
+3. certainty (확실성): 정보 신뢰도 (1=루머, 10=공시)
+4. durability (지속성): 효과 지속 기간 (1=일회성, 10=구조적)
+5. attention (관심도): 투자자/미디어 예상 관심 (1=낮음, 10=높음)
+6. relevance (연관성): 현재 시장 테마 관련성 (1=무관, 10=핫테마)
+
+### 계산용 3가지 지표
+7. sectorImpact (섹터 영향): 업종 전체 영향 범위 (1=종목만, 10=업종전체)
+8. institutionalInterest (기관 관심도): 외국인/기관 관심 예상 (1=개인만, 10=기관큰관심)
+9. volatility (변동성): 예상 주가 변동폭 (1=미미, 10=큰변동)
+
+### 투자 심리 (-2 ~ +2)
+sentiment: -2(매우악재), -1(악재), 0(중립), +1(호재), +2(매우호재)
+
+## 응답 형식
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "scores": {
+    "impact": 1-10,
+    "urgency": 1-10,
+    "certainty": 1-10,
+    "durability": 1-10,
+    "attention": 1-10,
+    "relevance": 1-10,
+    "sectorImpact": 1-10,
+    "institutionalInterest": 1-10,
+    "volatility": 1-10,
+    "sentiment": -2 ~ +2
+  },
+  "reasoning": "점수 산정 근거 (한 문장)"
+}`;
+
+export function formatScoreOnlyPrompt(title: string, description: string): string {
+  return SCORE_ONLY_PROMPT.replace('{title}', title).replace('{description}', description);
+}
