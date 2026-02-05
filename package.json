@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "migrate": "node scripts/run-migration.js",
+    "migrate:dedup": "node scripts/run-migration.js supabase/migrations/004_deduplication_support.sql"
   },
   "dependencies": {
     "next": "^15.0.0",
