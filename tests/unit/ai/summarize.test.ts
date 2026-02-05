@@ -1,4 +1,9 @@
-import { summarizeNews, type SummaryResult } from '@/lib/ai/summarize';
+import {
+  summarizeNews,
+  summarizeNewsWithScores,
+  type SummaryResult,
+  type SummaryWithScoresResult,
+} from '@/lib/ai/summarize';
 import * as gemini from '@/lib/ai/gemini';
 
 // Mock the Gemini API
@@ -115,6 +120,185 @@ describe('AI Summarize', () => {
 
       // Summary should mention key numbers or company name
       expect(result.summary).toMatch(/카카오|10조|매출/);
+    });
+  });
+
+  describe('summarizeNewsWithScores', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should generate summary with all scores', async () => {
+      const article = {
+        title: '삼성전자(005930) 4분기 실적 발표',
+        description:
+          '삼성전자가 4분기 영업이익 6.5조원을 기록했다고 발표했습니다.',
+      };
+
+      const mockResponse = JSON.stringify({
+        summary:
+          '삼성전자가 4분기 영업이익 6.5조원을 기록했습니다. 전년 대비 30% 증가한 실적입니다.',
+        scores: {
+          impact: 8,
+          urgency: 9,
+          certainty: 10,
+          durability: 6,
+          attention: 8,
+          relevance: 7,
+          sectorImpact: 7,
+          institutionalInterest: 9,
+          volatility: 6,
+          sentiment: 2,
+        },
+        reasoning: '분기 실적 공시로 확실성이 높고 주가에 즉시 반영될 뉴스',
+      });
+
+      (gemini.generateContent as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await summarizeNewsWithScores(
+        article.title,
+        article.description,
+      );
+
+      // Check summary
+      expect(result.summary).toBeTruthy();
+      expect(typeof result.summary).toBe('string');
+
+      // Check visual scores
+      expect(result.scores.visual.impact).toBe(8);
+      expect(result.scores.visual.urgency).toBe(9);
+      expect(result.scores.visual.certainty).toBe(10);
+      expect(result.scores.visual.durability).toBe(6);
+      expect(result.scores.visual.attention).toBe(8);
+      expect(result.scores.visual.relevance).toBe(7);
+
+      // Check hidden scores
+      expect(result.scores.hidden.sectorImpact).toBe(7);
+      expect(result.scores.hidden.institutionalInterest).toBe(9);
+      expect(result.scores.hidden.volatility).toBe(6);
+
+      // Check sentiment and total
+      expect(result.scores.sentiment).toBe(2);
+      expect(result.scores.totalScore).toBeGreaterThan(0);
+      expect(result.scores.totalScore).toBeLessThanOrEqual(100);
+
+      // Check reasoning
+      expect(result.scores.reasoning).toBeTruthy();
+    });
+
+    it('should clamp scores to valid ranges', async () => {
+      const article = {
+        title: 'Test Article',
+        description: 'Test description',
+      };
+
+      // Return invalid scores that should be clamped
+      const mockResponse = JSON.stringify({
+        summary: 'Test summary',
+        scores: {
+          impact: 15, // Should clamp to 10
+          urgency: -5, // Should clamp to 1
+          certainty: 5,
+          durability: 5,
+          attention: 5,
+          relevance: 5,
+          sectorImpact: 5,
+          institutionalInterest: 5,
+          volatility: 5,
+          sentiment: 10, // Should clamp to 2
+        },
+        reasoning: 'Test',
+      });
+
+      (gemini.generateContent as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await summarizeNewsWithScores(
+        article.title,
+        article.description,
+      );
+
+      expect(result.scores.visual.impact).toBe(10);
+      expect(result.scores.visual.urgency).toBe(1);
+      expect(result.scores.sentiment).toBe(2);
+    });
+
+    it('should return fallback on API error', async () => {
+      const article = {
+        title: 'Test Article',
+        description: 'Test description for fallback',
+      };
+
+      (gemini.generateContent as jest.Mock).mockRejectedValue(
+        new Error('API Error'),
+      );
+
+      const result = await summarizeNewsWithScores(
+        article.title,
+        article.description,
+      );
+
+      // Should have fallback summary
+      expect(result.summary).toBeTruthy();
+
+      // Should have default scores (all 5)
+      expect(result.scores.visual.impact).toBe(5);
+      expect(result.scores.totalScore).toBe(50);
+      expect(result.scores.reasoning).toContain('기본값');
+    });
+
+    it('should calculate total score correctly', async () => {
+      const article = {
+        title: '호재 뉴스',
+        description: '매우 긍정적인 뉴스',
+      };
+
+      const mockResponse = JSON.stringify({
+        summary: '매우 긍정적인 뉴스입니다.',
+        scores: {
+          impact: 10,
+          urgency: 10,
+          certainty: 10,
+          durability: 10,
+          attention: 10,
+          relevance: 10,
+          sectorImpact: 10,
+          institutionalInterest: 10,
+          volatility: 10,
+          sentiment: 2,
+        },
+        reasoning: '모든 지표 최고점',
+      });
+
+      (gemini.generateContent as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await summarizeNewsWithScores(
+        article.title,
+        article.description,
+      );
+
+      // With all max scores, total should be 100
+      expect(result.scores.totalScore).toBe(100);
+    });
+
+    it('should handle malformed JSON response', async () => {
+      const article = {
+        title: 'Test',
+        description: 'Test description',
+      };
+
+      // Return non-JSON response
+      (gemini.generateContent as jest.Mock).mockResolvedValue(
+        'This is not JSON',
+      );
+
+      const result = await summarizeNewsWithScores(
+        article.title,
+        article.description,
+      );
+
+      // Should return fallback
+      expect(result.summary).toBeTruthy();
+      expect(result.scores.totalScore).toBe(50);
     });
   });
 });
