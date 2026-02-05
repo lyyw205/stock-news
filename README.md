@@ -104,11 +104,11 @@ korean-stock-news/
 
 ## Development Phases
 
-- [x] Phase 1: Data Pipeline Foundation (RSS fetching)
-- [ ] Phase 2: AI Integration (filtering and summarization)
-- [ ] Phase 3: User Auth & Subscriptions
-- [ ] Phase 4: Notification System
-- [ ] Phase 5: Dashboard UI
+- [x] **Phase 1: Data Pipeline Foundation** ✅ (RSS fetching, deduplication, ticker extraction)
+- [x] **Phase 2: AI Integration** ✅ (Gemini filtering and summarization)
+- [x] **Phase 3: User Auth & Subscriptions** ✅ (Login, signup, subscription management)
+- [ ] **Phase 4: Notification System** (Email and push notifications)
+- [ ] **Phase 5: Dashboard UI** (News feed with summaries)
 
 ## License
 
