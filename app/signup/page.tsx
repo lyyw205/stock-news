@@ -1,0 +1,122 @@
+'use client';
+
+import { useState } from 'react';
+import { getSupabaseClient } from '@/lib/auth/supabase-client';
+import { useRouter } from 'next/navigation';
+
+export default function SignupPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        router.push('/login?message=이메일을 확인해주세요');
+      }
+    } catch (err) {
+      setError('회원가입 중 오류가 발생했습니다');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+        <h1 className="text-2xl font-bold text-center mb-6">회원가입</h1>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
+        )}
+
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              이메일
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium mb-2">
+              비밀번호
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+              비밀번호 확인
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {loading ? '가입 중...' : '회원가입'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          이미 계정이 있으신가요?{' '}
+          <a href="/login" className="text-blue-600 hover:underline">
+            로그인
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
