@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { scoreNewsOnly } from './score';
 import { summarizeNews } from './summarize';
+import { generateAnalysisReport, saveAnalysisReport } from './report';
 import { autoPublishArticle } from '@/lib/social-media/auto-publisher';
 import {
   findExistingDuplicate,
@@ -14,6 +15,7 @@ export interface ProcessResult {
   processed: number;
   scored: number; // Articles scored (replaces filtered)
   autoPublished: number; // Articles auto-published (≥80 score)
+  reportsGenerated: number; // Analysis reports generated (≥80 score)
   deduplicated: number; // 중복으로 판단된 뉴스 수
   errors: number;
 }
@@ -46,6 +48,7 @@ export async function processUnprocessedArticles(
       processed: 0,
       scored: 0,
       autoPublished: 0,
+      reportsGenerated: 0,
       deduplicated: 0,
       errors: 0,
     };
@@ -54,6 +57,7 @@ export async function processUnprocessedArticles(
   let processedCount = 0;
   let scoredCount = 0;
   let autoPublishedCount = 0;
+  let reportsGeneratedCount = 0;
   let deduplicatedCount = 0;
   let errorCount = 0;
 
@@ -203,6 +207,29 @@ export async function processUnprocessedArticles(
 
             autoPublishedCount++;
           }
+
+          // Step 3.5: Auto-generate analysis report for high-score articles
+          try {
+            const { report, processingTimeMs } = await generateAnalysisReport(
+              article.title,
+              article.description || '',
+              summaryTextResult.summary,
+            );
+
+            await saveAnalysisReport(
+              supabase,
+              article.id,
+              summaryData.id,
+              report,
+              'auto',
+              processingTimeMs,
+            );
+
+            reportsGeneratedCount++;
+          } catch (reportError) {
+            console.error(`Error generating report for article ${article.id}:`, reportError);
+            // Continue processing even if report generation fails
+          }
         } catch (autoPublishError) {
           console.error(`Error auto-publishing article ${article.id}:`, autoPublishError);
           // Continue processing even if auto-publish fails
@@ -232,6 +259,7 @@ export async function processUnprocessedArticles(
     processed: processedCount,
     scored: scoredCount,
     autoPublished: autoPublishedCount,
+    reportsGenerated: reportsGeneratedCount,
     deduplicated: deduplicatedCount,
     errors: errorCount,
   };

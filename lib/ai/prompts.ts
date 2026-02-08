@@ -194,3 +194,87 @@ sentiment: -2(매우악재), -1(악재), 0(중립), +1(호재), +2(매우호재)
 export function formatScoreOnlyPrompt(title: string, description: string): string {
   return SCORE_ONLY_PROMPT.replace('{title}', title).replace('{description}', description);
 }
+
+export const ANALYSIS_REPORT_PROMPT = `당신은 한국 주식 시장 전문 애널리스트입니다.
+
+다음 뉴스 기사를 심층 분석하여 투자자를 위한 상세 리포트를 작성해주세요.
+
+## 뉴스 정보
+제목: {title}
+내용: {description}
+기존 요약: {summary}
+
+## 분석 항목
+
+### 1. 핵심 요약 (coreSummary)
+- 3-5문장으로 핵심 내용 요약
+- 투자 판단에 필요한 핵심 정보만 포함
+
+### 2. 호재 요인 (bullishFactors)
+- 주가 상승에 긍정적인 요인들
+- 각 요인별 근거와 확신도(0.0-1.0) 포함
+- 최소 1개, 최대 5개
+
+### 3. 악재 요인 (bearishFactors)
+- 주가 하락에 부정적인 요인들
+- 각 요인별 근거와 확신도(0.0-1.0) 포함
+- 해당 없으면 빈 배열
+
+### 4. 종합 평가 (overallAssessment)
+- strong_bullish: 매우 강한 호재
+- bullish: 호재
+- neutral: 중립
+- bearish: 악재
+- strong_bearish: 매우 강한 악재
+
+### 5. 주가 영향 분석 (priceImpact)
+- short: 단기 (1주) 예상 영향
+- medium: 중기 (1-3개월) 예상 영향
+- long: 장기 (6개월+) 예상 영향
+- summary: 종합 분석
+
+### 6. 리스크 요인 (riskFactors)
+- 투자 시 주의할 리스크
+- severity: high/medium/low
+- 해당 없으면 빈 배열
+
+### 7. 기회 요인 (opportunityFactors)
+- 투자 기회 요인
+- potential: high/medium/low
+- 해당 없으면 빈 배열
+
+## 응답 형식
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "coreSummary": "핵심 요약 (3-5문장)",
+  "bullishFactors": [
+    {"factor": "요인명", "reasoning": "근거 설명", "confidence": 0.8}
+  ],
+  "bearishFactors": [
+    {"factor": "요인명", "reasoning": "근거 설명", "confidence": 0.7}
+  ],
+  "overallAssessment": "bullish",
+  "priceImpact": {
+    "short": "단기 영향 분석",
+    "medium": "중기 영향 분석",
+    "long": "장기 영향 분석",
+    "summary": "종합 분석"
+  },
+  "riskFactors": [
+    {"factor": "리스크명", "severity": "high", "description": "설명"}
+  ],
+  "opportunityFactors": [
+    {"factor": "기회명", "potential": "high", "description": "설명"}
+  ]
+}`;
+
+export function formatAnalysisReportPrompt(
+  title: string,
+  description: string,
+  summary: string | null,
+): string {
+  return ANALYSIS_REPORT_PROMPT
+    .replace('{title}', title)
+    .replace('{description}', description)
+    .replace('{summary}', summary || '(요약 없음)');
+}

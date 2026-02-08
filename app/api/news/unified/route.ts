@@ -15,8 +15,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
 
-    // Build query
-    let query = supabase
+    // Try query with analysis_reports table first
+    let data: any[] | null = null;
+    let error: any = null;
+    let hasReportsTable = true;
+
+    // First attempt: with analysis_reports
+    const result = await supabase
       .from('news_articles')
       .select(
         `
@@ -41,6 +46,9 @@ export async function GET(request: NextRequest) {
           score_durability,
           score_attention,
           score_relevance
+        ),
+        analysis_reports (
+          id
         )
       `
       )
@@ -49,7 +57,48 @@ export async function GET(request: NextRequest) {
       .order('pub_date', { ascending: false })
       .limit(limit);
 
-    const { data, error } = await query;
+    // If analysis_reports table doesn't exist, retry without it
+    if (result.error && result.error.message?.includes('analysis_reports')) {
+      hasReportsTable = false;
+      const fallbackResult = await supabase
+        .from('news_articles')
+        .select(
+          `
+          id,
+          ticker,
+          title,
+          url,
+          pub_date,
+          source_count,
+          summaries!inner (
+            id,
+            summary_text,
+            total_score,
+            sentiment,
+            auto_published,
+            auto_published_at,
+            social_posted,
+            social_posted_at,
+            score_impact,
+            score_urgency,
+            score_certainty,
+            score_durability,
+            score_attention,
+            score_relevance
+          )
+        `
+        )
+        .eq('is_processed', true)
+        .gte('summaries.total_score', minScore)
+        .order('pub_date', { ascending: false })
+        .limit(limit);
+
+      data = fallbackResult.data;
+      error = fallbackResult.error;
+    } else {
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('Error fetching unified news:', error);
@@ -64,6 +113,13 @@ export async function GET(request: NextRequest) {
       const summary = Array.isArray(article.summaries)
         ? article.summaries[0]
         : article.summaries;
+
+      // Check if analysis report exists (only if table exists)
+      const hasReport = hasReportsTable
+        ? (Array.isArray(article.analysis_reports)
+            ? article.analysis_reports.length > 0
+            : !!article.analysis_reports)
+        : false;
 
       return {
         id: article.id,
@@ -90,6 +146,7 @@ export async function GET(request: NextRequest) {
         autoPublishedAt: summary.auto_published_at,
         socialPosted: summary.social_posted,
         socialPostedAt: summary.social_posted_at,
+        hasReport,
       };
     });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import ScoreDisplay from '../ScoreDisplay';
 import { getCompanyName } from '@/lib/utils/ticker-names';
 import { SocialPlatform } from '@/lib/social-media/types';
@@ -30,6 +31,7 @@ export interface UnifiedArticle {
   autoPublishedAt: string | null;
   socialPosted: boolean;
   socialPostedAt: string | null;
+  hasReport?: boolean;
 }
 
 interface UnifiedNewsCardProps {
@@ -202,15 +204,29 @@ export default function UnifiedNewsCard({
         </div>
       )}
 
-      {/* Link */}
-      <a
-        href={article.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-      >
-        원문 보기 →
-      </a>
+      {/* Links */}
+      <div className="flex items-center gap-4 mt-2">
+        <a
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 hover:underline"
+        >
+          원문 보기 →
+        </a>
+
+        {/* Report Link */}
+        <Link
+          href={`/reports/${article.id}`}
+          className={`text-sm ${
+            article.hasReport
+              ? 'text-purple-600 hover:underline'
+              : 'text-gray-500 hover:text-purple-600'
+          }`}
+        >
+          {article.hasReport ? '상세 분석 보기 →' : '상세 분석 생성 →'}
+        </Link>
+      </div>
     </div>
   );
 }
