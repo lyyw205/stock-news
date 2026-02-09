@@ -1,0 +1,6 @@
+ALTER TABLE public.analysis_reports
+  ADD COLUMN IF NOT EXISTS news_background TEXT,
+  ADD COLUMN IF NOT EXISTS related_stocks JSONB NOT NULL DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS timeline_catalysts JSONB NOT NULL DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS key_terms JSONB NOT NULL DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS investor_checklist JSONB NOT NULL DEFAULT '[]';

@@ -79,6 +79,11 @@ export async function GET(
       },
       riskFactors: report.risk_factors,
       opportunityFactors: report.opportunity_factors,
+      newsBackground: report.news_background || null,
+      relatedStocks: report.related_stocks || [],
+      timelineCatalysts: report.timeline_catalysts || [],
+      keyTerms: report.key_terms || [],
+      investorChecklist: report.investor_checklist || [],
       processingTimeMs: report.processing_time_ms,
       createdAt: report.created_at,
       article: {

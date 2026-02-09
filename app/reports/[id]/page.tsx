@@ -7,14 +7,24 @@ import {
   ASSESSMENT_LABELS,
   SEVERITY_LABELS,
   POTENTIAL_LABELS,
+  STOCK_IMPACT_LABELS,
+  STOCK_IMPACT_COLORS,
+  CATALYST_URGENCY_LABELS,
+  CATALYST_URGENCY_COLORS,
+  CHECK_IMPORTANCE_COLORS,
   type OverallAssessment,
   type Factor,
   type RiskFactor,
   type OpportunityFactor,
+  type RelatedStock,
+  type CatalystEvent,
+  type KeyTerm,
+  type InvestorCheckItem,
   type VisualScores,
 } from '@/lib/types/report';
 import type { ReportWithArticle } from '@/lib/types/report';
 import { SENTIMENT_LABELS } from '@/lib/types/scores';
+import { ResponsiveRadar } from '@nivo/radar';
 
 // ============================================
 // Animation Hooks & Utilities
@@ -104,16 +114,6 @@ const ASSESSMENT_STYLES: Record<OverallAssessment, { bg: string; text: string; d
   neutral: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
   bearish: { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
   strong_bearish: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
-};
-
-// Score labels for radar chart
-const SCORE_LABELS: Record<keyof VisualScores, string> = {
-  impact: '영향력',
-  urgency: '긴급성',
-  certainty: '확실성',
-  durability: '지속성',
-  attention: '관심도',
-  relevance: '연관성',
 };
 
 export default function ReportPage() {
@@ -285,35 +285,32 @@ export default function ReportPage() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Score Overview Section */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          {/* Main Score Card */}
-          <AnimatedCard className="lg:col-span-1" delay={0}>
-            <div className="p-6 text-center">
-              <div className="text-xs text-slate-500 font-medium mb-4 uppercase tracking-wider">종합 점수</div>
-              <ScoreGauge score={report.summary.totalScore} sentiment={report.summary.sentiment} />
-              <div className="mt-4">
-                <AnimatedBadge delay={800} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${assessmentStyle.bg}`}>
+        {/* Score Overview */}
+        {/* Score Cards */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-8">
+          {/* 왼쪽: 종합점수 + 보조지표 세로 스택 */}
+          <div className="lg:w-96 flex flex-col gap-6">
+            <AnimatedCard delay={0} className="flex-1">
+              <div className="p-6 flex flex-col items-center justify-center h-full">
+                <div className="text-xs text-slate-400 font-medium mb-3 uppercase tracking-wider">종합 점수</div>
+                <ScoreGauge score={report.summary.totalScore} sentiment={report.summary.sentiment} />
+                <AnimatedBadge delay={800} className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full ${assessmentStyle.bg}`}>
                   <div className={`w-2 h-2 rounded-full ${assessmentStyle.dot} animate-pulse`} />
                   <span className={`text-sm font-semibold ${assessmentStyle.text}`}>{ASSESSMENT_LABELS[report.overallAssessment]}</span>
                 </AnimatedBadge>
               </div>
-            </div>
-          </AnimatedCard>
+            </AnimatedCard>
+            <AnimatedCard delay={200}>
+              <div className="p-5">
+                <HiddenScoreDonuts hidden={report.scores.hidden} />
+              </div>
+            </AnimatedCard>
+          </div>
 
-          {/* Radar Chart */}
-          <AnimatedCard className="lg:col-span-1" delay={100}>
+          {/* 오른쪽: 주요 지표 레이더 */}
+          <AnimatedCard delay={100} className="flex-1">
             <div className="p-6">
-              <div className="text-xs text-slate-500 font-medium mb-4 uppercase tracking-wider text-center">6축 분석 차트</div>
-              <RadarChart scores={report.scores.visual} />
-            </div>
-          </AnimatedCard>
-
-          {/* Score Breakdown */}
-          <AnimatedCard className="lg:col-span-1" delay={200}>
-            <div className="p-6">
-              <div className="text-xs text-slate-500 font-medium mb-4 uppercase tracking-wider">점수 상세</div>
-              <ScoreBreakdown scores={report.scores.visual} hidden={report.scores.hidden} />
+              <ScoreRadarChart scores={report.scores.visual} />
             </div>
           </AnimatedCard>
         </div>
@@ -334,11 +331,24 @@ export default function ReportPage() {
               </div>
             </AnimatedCard>
 
-            {/* Executive Summary */}
+            {/* News Analysis (merged: 핵심 요약 + 뉴스 배경) */}
             <AnimatedCard delay={400}>
-              <CardHeader title="핵심 요약" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
-              <div className="p-5">
-                <p className="text-slate-600 leading-relaxed">{report.coreSummary}</p>
+              <CardHeader title="뉴스 분석" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+              <div className="p-5 space-y-4">
+                <div>
+                  <div className="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />핵심 요약
+                  </div>
+                  <p className="text-slate-600 leading-relaxed">{report.coreSummary}</p>
+                </div>
+                {report.newsBackground && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <div className="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />배경 & 맥락
+                    </div>
+                    <p className="text-slate-500 leading-relaxed text-sm">{report.newsBackground}</p>
+                  </div>
+                )}
               </div>
             </AnimatedCard>
 
@@ -357,59 +367,153 @@ export default function ReportPage() {
                 </div>
               </div>
             </AnimatedCard>
+
+            {/* Timeline & Catalysts */}
+            {report.timelineCatalysts && report.timelineCatalysts.length > 0 && (
+              <AnimatedCard delay={600}>
+                <CardHeader title="타임라인 & 촉매" icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
+                <div className="p-5">
+                  <div className="relative">
+                    {report.timelineCatalysts.map((catalyst: CatalystEvent, idx: number) => {
+                      const urgencyColor = CATALYST_URGENCY_COLORS[catalyst.urgency];
+                      const isLast = idx === report.timelineCatalysts.length - 1;
+                      return (
+                        <div key={idx} className="flex gap-4 relative">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-3 h-3 rounded-full ${urgencyColor.dot} shrink-0 mt-1.5`} />
+                            {!isLast && <div className={`w-px flex-1 border-l-2 ${urgencyColor.line} border-dashed my-1`} />}
+                          </div>
+                          <div className="pb-5">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-slate-900">{catalyst.event}</span>
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${urgencyColor.dot} text-white`}>
+                                {CATALYST_URGENCY_LABELS[catalyst.urgency]}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-400 mb-1">{catalyst.expectedDate}</div>
+                            <p className="text-slate-600 text-sm leading-relaxed">{catalyst.potentialImpact}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </AnimatedCard>
+            )}
+
+            {/* Investor Checklist */}
+            {report.investorChecklist && report.investorChecklist.length > 0 && (
+              <AnimatedCard delay={650}>
+                <CardHeader title="투자자 체크리스트" icon={<svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>} />
+                <div className="p-5">
+                  <div className="space-y-2.5">
+                    {report.investorChecklist.map((check: InvestorCheckItem, idx: number) => {
+                      const importanceColor = CHECK_IMPORTANCE_COLORS[check.importance];
+                      return (
+                        <div key={idx} className="flex items-start gap-3 group">
+                          <div className={`w-2 h-2 rounded-full ${importanceColor.dot} shrink-0 mt-1.5`} />
+                          <span className="text-sm text-slate-700 leading-relaxed">{check.item}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </AnimatedCard>
+            )}
           </div>
 
           {/* Right Column - 1/3 */}
           <div className="space-y-6">
-            {/* Bullish Factors */}
+            {/* Bullish & Opportunity (merged: 호재 요인 + 기회 요인) */}
             <AnimatedCard delay={350}>
-              <CardHeader title="호재 요인" icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>} badge={report.bullishFactors.length} badgeColor="emerald" />
+              <CardHeader title="호재 & 기회" icon={<svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>} badge={report.bullishFactors.length + report.opportunityFactors.length} badgeColor="emerald" />
               <div className="p-4 space-y-3">
                 {report.bullishFactors.length > 0 ? report.bullishFactors.map((factor: Factor, idx: number) => (
-                  <AnimatedFactorItem key={idx} factor={factor} type="bullish" delay={450 + idx * 100} />
-                )) : <p className="text-slate-400 text-sm text-center py-4">호재 요인 없음</p>}
+                  <AnimatedFactorItem key={`b-${idx}`} factor={factor} type="bullish" delay={450 + idx * 100} />
+                )) : <p className="text-slate-400 text-sm text-center py-2">호재 요인 없음</p>}
+                {report.opportunityFactors.length > 0 && (
+                  <div className="pt-2 border-t border-emerald-100/50">
+                    <div className="text-[10px] text-slate-400 font-medium mb-2 uppercase tracking-wider">잠재 기회</div>
+                    {report.opportunityFactors.map((opp: OpportunityFactor, idx: number) => (
+                      <div key={`o-${idx}`} className="bg-cyan-50/50 rounded-lg p-3 mb-2 last:mb-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-cyan-700">{opp.factor}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700">{POTENTIAL_LABELS[opp.potential]}</span>
+                        </div>
+                        <p className="text-slate-500 text-xs leading-relaxed">{opp.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </AnimatedCard>
 
-            {/* Bearish Factors */}
+            {/* Bearish & Risk (merged: 악재 요인 + 리스크 요인) */}
             <AnimatedCard delay={450}>
-              <CardHeader title="악재 요인" icon={<svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>} badge={report.bearishFactors.length} badgeColor="red" />
+              <CardHeader title="악재 & 리스크" icon={<svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>} badge={report.bearishFactors.length + report.riskFactors.length} badgeColor="red" />
               <div className="p-4 space-y-3">
                 {report.bearishFactors.length > 0 ? report.bearishFactors.map((factor: Factor, idx: number) => (
-                  <AnimatedFactorItem key={idx} factor={factor} type="bearish" delay={550 + idx * 100} />
-                )) : <p className="text-slate-400 text-sm text-center py-4">악재 요인 없음</p>}
+                  <AnimatedFactorItem key={`br-${idx}`} factor={factor} type="bearish" delay={550 + idx * 100} />
+                )) : <p className="text-slate-400 text-sm text-center py-2">악재 요인 없음</p>}
+                {report.riskFactors.length > 0 && (
+                  <div className="pt-2 border-t border-red-100/50">
+                    <div className="text-[10px] text-slate-400 font-medium mb-2 uppercase tracking-wider">잠재 리스크</div>
+                    {report.riskFactors.map((risk: RiskFactor, idx: number) => (
+                      <div key={`r-${idx}`} className="bg-orange-50/50 rounded-lg p-3 mb-2 last:mb-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-orange-700">{risk.factor}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">{SEVERITY_LABELS[risk.severity]}</span>
+                        </div>
+                        <p className="text-slate-500 text-xs leading-relaxed">{risk.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {report.bearishFactors.length === 0 && report.riskFactors.length === 0 && (
+                  <p className="text-slate-400 text-sm text-center py-2">악재/리스크 없음</p>
+                )}
               </div>
             </AnimatedCard>
 
-            {/* Risk & Opportunity */}
-            <AnimatedCard delay={550}>
-              <CardHeader title="리스크 & 기회" icon={<svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>} />
-              <div className="p-4 space-y-4">
-                {report.riskFactors.length > 0 && (
-                  <div>
-                    <div className="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />리스크
+            {/* Related Stocks */}
+            {report.relatedStocks && report.relatedStocks.length > 0 && (
+              <AnimatedCard delay={500}>
+                <CardHeader title="관련 종목" icon={<svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} badge={report.relatedStocks.length} badgeColor="amber" />
+                <div className="p-4 space-y-2.5">
+                  {report.relatedStocks.map((stock: RelatedStock, idx: number) => {
+                    const impactColor = STOCK_IMPACT_COLORS[stock.impactType];
+                    const impactIcon = stock.expectedImpact === 'positive' ? '↑' : stock.expectedImpact === 'negative' ? '↓' : '↕';
+                    return (
+                      <div key={idx} className="bg-slate-50 rounded-lg p-3 hover:bg-slate-100 transition-colors duration-200">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-sm font-medium text-slate-900">{stock.name}</span>
+                          {stock.ticker && <span className="text-[10px] text-slate-400">{stock.ticker}</span>}
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${impactColor.bg} ${impactColor.text}`}>
+                            {impactIcon} {STOCK_IMPACT_LABELS[stock.impactType]}
+                          </span>
+                        </div>
+                        <p className="text-slate-500 text-xs leading-relaxed">{stock.reasoning}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AnimatedCard>
+            )}
+
+            {/* Key Terms */}
+            {report.keyTerms && report.keyTerms.length > 0 && (
+              <AnimatedCard delay={550}>
+                <CardHeader title="핵심 용어 해설" icon={<svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>} />
+                <div className="p-4 space-y-3">
+                  {report.keyTerms.map((item: KeyTerm, idx: number) => (
+                    <div key={idx} className="bg-indigo-50/50 rounded-lg p-3">
+                      <div className="text-sm font-medium text-indigo-700 mb-1">{item.term}</div>
+                      <p className="text-slate-600 text-xs leading-relaxed">{item.definition}</p>
                     </div>
-                    <div className="space-y-2">
-                      {report.riskFactors.map((risk: RiskFactor, idx: number) => <AnimatedRiskItem key={idx} risk={risk} delay={650 + idx * 100} />)}
-                    </div>
-                  </div>
-                )}
-                {report.opportunityFactors.length > 0 && (
-                  <div>
-                    <div className="text-xs text-slate-500 font-medium mb-2 flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />기회
-                    </div>
-                    <div className="space-y-2">
-                      {report.opportunityFactors.map((opp: OpportunityFactor, idx: number) => <AnimatedOpportunityItem key={idx} opportunity={opp} delay={750 + idx * 100} />)}
-                    </div>
-                  </div>
-                )}
-                {report.riskFactors.length === 0 && report.opportunityFactors.length === 0 && (
-                  <p className="text-slate-400 text-sm text-center py-4">특이사항 없음</p>
-                )}
-              </div>
-            </AnimatedCard>
+                  ))}
+                </div>
+              </AnimatedCard>
+            )}
           </div>
         </div>
 
@@ -460,190 +564,171 @@ function ScoreGauge({ score, sentiment }: { score: number; sentiment: number }) 
   );
 }
 
-// Radar Chart Component with drawing animation
-function RadarChart({ scores }: { scores: VisualScores }) {
-  const labels = Object.keys(scores) as (keyof VisualScores)[];
-  const values = labels.map(k => scores[k]);
-  const max = 10;
-  const size = 140;
-  const center = size / 2;
-  const radius = 50;
+// ============================================
+// Score Radar Charts — Visual (6-axis) + Hidden (3-axis)
+// ============================================
 
-  // Animate expansion from center
-  const animationProgress = useAnimatedProgress(1, 1200, 500);
+const VISUAL_SCORE_META: Record<string, { desc: string; color: string }> = {
+  '영향력': { desc: '시장 영향도', color: '#8B5CF6' },
+  '긴급성': { desc: '즉각 대응 필요성', color: '#3B82F6' },
+  '확실성': { desc: '정보 신뢰도', color: '#10B981' },
+  '지속성': { desc: '영향 지속 기간', color: '#F59E0B' },
+  '관심도': { desc: '시장 관심 수준', color: '#F43F5E' },
+  '연관성': { desc: '종목 연관도', color: '#06B6D4' },
+};
 
-  const getPoint = (index: number, value: number, scale = 1) => {
-    const angle = (Math.PI * 2 * index) / labels.length - Math.PI / 2;
-    const r = (value / max) * radius * scale;
-    return {
-      x: center + r * Math.cos(angle),
-      y: center + r * Math.sin(angle),
-    };
-  };
+const HIDDEN_SCORE_META: Record<string, { desc: string; color: string }> = {
+  '섹터 영향': { desc: '업종 전반 파급력', color: '#64748B' },
+  '기관 관심': { desc: '기관투자자 관심도', color: '#818CF8' },
+  '변동성': { desc: '주가 변동 가능성', color: '#F97316' },
+};
 
-  const gridLevels = [0.25, 0.5, 0.75, 1];
-  const animatedPoints = values.map((v, i) => getPoint(i, v, animationProgress));
-  const pathD = animatedPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+// 6-axis Radar: Visual Scores
+function ScoreRadarChart({ scores }: { scores: VisualScores }) {
+  const data = [
+    { axis: '영향력', score: scores.impact },
+    { axis: '긴급성', score: scores.urgency },
+    { axis: '확실성', score: scores.certainty },
+    { axis: '지속성', score: scores.durability },
+    { axis: '관심도', score: scores.attention },
+    { axis: '연관성', score: scores.relevance },
+  ];
+  const scoreMap = Object.fromEntries(data.map((d) => [d.axis, d.score]));
 
   return (
-    <div className="flex justify-center">
-      <svg width={size} height={size} className="overflow-visible">
-        {/* Grid */}
-        {gridLevels.map((level, i) => {
-          const gridPoints = labels.map((_, idx) => getPoint(idx, max * level));
-          const gridPath = gridPoints.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
-          return <path key={i} d={gridPath} fill="none" stroke="#E2E8F0" strokeWidth="1" />;
-        })}
-        {/* Axis lines */}
-        {labels.map((_, i) => {
-          const end = getPoint(i, max);
-          return <line key={i} x1={center} y1={center} x2={end.x} y2={end.y} stroke="#E2E8F0" strokeWidth="1" />;
-        })}
-        {/* Data polygon with animation */}
-        <path
-          d={pathD}
-          fill="rgba(139, 92, 246, 0.2)"
-          stroke="#8B5CF6"
-          strokeWidth="2"
-          style={{
-            opacity: animationProgress,
-            transition: 'opacity 0.3s ease',
+    <div>
+      <div className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">주요 지표</div>
+      <div style={{ height: 360 }}>
+        <ResponsiveRadar
+          data={data}
+          keys={['score']}
+          indexBy="axis"
+          maxValue={10}
+          margin={{ top: 55, right: 95, bottom: 55, left: 95 }}
+          curve="linearClosed"
+          borderWidth={2}
+          borderColor="#8B5CF6"
+          gridLevels={4}
+          gridShape="circular"
+          gridLabelOffset={24}
+          enableDots={true}
+          dotSize={8}
+          dotColor="#ffffff"
+          dotBorderWidth={2.5}
+          dotBorderColor="#8B5CF6"
+          colors={['rgba(139, 92, 246, 0.15)']}
+          fillOpacity={1}
+          blendMode="normal"
+          animate={true}
+          motionConfig="gentle"
+          gridLabel={(props: { id: string | number; anchor: 'start' | 'middle' | 'end'; x: number; y: number }) => {
+            const id = String(props.id);
+            const meta = VISUAL_SCORE_META[id];
+            const val = scoreMap[id];
+            return (
+              <g transform={`translate(${props.x}, ${props.y})`}>
+                <text
+                  textAnchor={props.anchor}
+                  dominantBaseline="central"
+                  style={{ fontSize: 12, fontWeight: 700, fill: meta?.color || '#334155' }}
+                >
+                  {id} {val}
+                </text>
+                <text
+                  textAnchor={props.anchor}
+                  dy={15}
+                  dominantBaseline="central"
+                  style={{ fontSize: 9, fontWeight: 400, fill: '#94A3B8' }}
+                >
+                  {meta?.desc || ''}
+                </text>
+              </g>
+            );
+          }}
+          theme={{
+            text: { fontSize: 11, fill: '#64748B' },
+            grid: { line: { stroke: '#E2E8F0', strokeWidth: 0.8 } },
           }}
         />
-        {/* Data points with animation */}
-        {animatedPoints.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={4 * animationProgress}
-            fill="#8B5CF6"
-            style={{
-              opacity: animationProgress,
-              transition: 'opacity 0.3s ease',
-            }}
-          />
+      </div>
+    </div>
+  );
+}
+
+// 3 Mini Donuts: Hidden/Auxiliary Scores
+function HiddenScoreDonuts({
+  hidden,
+}: {
+  hidden: { sectorImpact: number; institutionalInterest: number; volatility: number };
+}) {
+  const items = [
+    { label: '섹터 영향', desc: '업종 전반 파급력', value: hidden.sectorImpact, color: '#64748B' },
+    { label: '기관 관심', desc: '기관투자자 관심도', value: hidden.institutionalInterest, color: '#818CF8' },
+    { label: '변동성', desc: '주가 변동 가능성', value: hidden.volatility, color: '#F97316' },
+  ];
+
+  return (
+    <div>
+      <div className="text-xs text-slate-400 font-medium mb-3 uppercase tracking-wider">보조 지표</div>
+      <div className="flex justify-around">
+        {items.map((item, i) => (
+          <MiniDonut key={i} {...item} delay={300 + i * 150} />
         ))}
-        {/* Labels */}
-        {labels.map((label, i) => {
-          const labelPoint = getPoint(i, max + 2.5);
-          return (
-            <text
-              key={i}
-              x={labelPoint.x}
-              y={labelPoint.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-[10px] fill-slate-500"
-            >
-              {SCORE_LABELS[label]}
-            </text>
-          );
-        })}
+      </div>
+    </div>
+  );
+}
+
+function MiniDonut({
+  label,
+  desc,
+  value,
+  color,
+  delay,
+}: {
+  label: string;
+  desc: string;
+  value: number;
+  color: string;
+  delay: number;
+}) {
+  const r = 22;
+  const circumference = 2 * Math.PI * r;
+  const animatedValue = useAnimatedProgress(value, 1000, delay);
+  const offset = circumference - (animatedValue / 10) * circumference;
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <svg width="56" height="56" className="shrink-0">
+        <circle cx="28" cy="28" r={r} stroke="#F1F5F9" strokeWidth="5" fill="none" />
+        <circle
+          cx="28"
+          cy="28"
+          r={r}
+          stroke={color}
+          strokeWidth="5"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 28 28)"
+        />
+        <text
+          x="28"
+          y="28"
+          textAnchor="middle"
+          dominantBaseline="central"
+          style={{ fontSize: 14, fontWeight: 700, fill: color }}
+        >
+          {Math.round(animatedValue)}
+        </text>
       </svg>
-    </div>
-  );
-}
-
-// Animated Progress Bar for Score Breakdown
-function AnimatedProgressBar({ value, color, delay }: { value: number; color: string; delay: number }) {
-  const animatedWidth = useAnimatedProgress((value / 10) * 100, 800, delay);
-
-  return (
-    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full"
-        style={{
-          width: `${animatedWidth}%`,
-          backgroundColor: getColorValue(color),
-        }}
-      />
-    </div>
-  );
-}
-
-// Individual Score Row Component (to properly use hooks)
-function AnimatedScoreRow({ label, value, color, delay }: { label: string; value: number; color: string; delay: number }) {
-  const animatedValue = useCountUp(value, 800, delay);
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-slate-500 w-14 shrink-0">{label}</span>
-      <AnimatedProgressBar value={value} color={color} delay={delay} />
-      <span className="text-xs font-medium text-slate-700 w-6 text-right tabular-nums">{animatedValue}</span>
-    </div>
-  );
-}
-
-// Individual Hidden Score Component (to properly use hooks)
-function AnimatedHiddenScore({ label, value, delay }: { label: string; value: number; delay: number }) {
-  const animatedValue = useCountUp(value, 800, delay);
-
-  return (
-    <div className="text-center">
-      <div className="text-lg font-semibold text-slate-700 tabular-nums">{animatedValue}</div>
-      <div className="text-[10px] text-slate-400">{label}</div>
-    </div>
-  );
-}
-
-// Score Breakdown Component with staggered progress bar animations
-function ScoreBreakdown({ scores, hidden }: { scores: VisualScores; hidden: { sectorImpact: number; institutionalInterest: number; volatility: number } }) {
-  const allScores = [
-    { label: '영향력', value: scores.impact, color: 'violet' },
-    { label: '긴급성', value: scores.urgency, color: 'blue' },
-    { label: '확실성', value: scores.certainty, color: 'emerald' },
-    { label: '지속성', value: scores.durability, color: 'amber' },
-    { label: '관심도', value: scores.attention, color: 'rose' },
-    { label: '연관성', value: scores.relevance, color: 'cyan' },
-  ];
-
-  const hiddenScores = [
-    { label: '섹터 영향', value: hidden.sectorImpact },
-    { label: '기관 관심', value: hidden.institutionalInterest },
-    { label: '변동성', value: hidden.volatility },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        {allScores.map((item, i) => (
-          <AnimatedScoreRow
-            key={i}
-            label={item.label}
-            value={item.value}
-            color={item.color}
-            delay={600 + i * 50}
-          />
-        ))}
-      </div>
-      <div className="pt-3 border-t border-slate-100">
-        <div className="text-[10px] text-slate-400 mb-2 uppercase tracking-wider">숨겨진 지표</div>
-        <div className="grid grid-cols-3 gap-2">
-          {hiddenScores.map((item, i) => (
-            <AnimatedHiddenScore
-              key={i}
-              label={item.label}
-              value={item.value}
-              delay={900 + i * 100}
-            />
-          ))}
-        </div>
+      <div className="mt-1.5">
+        <div className="text-[11px] font-semibold text-slate-700">{label}</div>
+        <div className="text-[10px] text-slate-400">{desc}</div>
       </div>
     </div>
   );
-}
-
-function getColorValue(color: string): string {
-  const colors: Record<string, string> = {
-    violet: '#8B5CF6',
-    blue: '#3B82F6',
-    emerald: '#10B981',
-    amber: '#F59E0B',
-    rose: '#F43F5E',
-    cyan: '#06B6D4',
-  };
-  return colors[color] || '#8B5CF6';
 }
 
 // Animated Card Component with staggered fade-in and hover lift effect
@@ -673,11 +758,6 @@ function AnimatedCard({
   );
 }
 
-// Static Card (for backwards compatibility)
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 hover:border-slate-300 transform transition-all duration-300 ${className}`}>{children}</div>;
-}
-
 function CardHeader({ title, icon, badge, badgeColor }: { title: string; icon: React.ReactNode; badge?: number; badgeColor?: string }) {
   const badgeColors: Record<string, string> = { emerald: 'bg-emerald-50 text-emerald-600', red: 'bg-red-50 text-red-600', amber: 'bg-amber-50 text-amber-600' };
   return (
@@ -687,19 +767,6 @@ function CardHeader({ title, icon, badge, badgeColor }: { title: string; icon: R
         <h3 className="font-semibold text-slate-900">{title}</h3>
       </div>
       {badge !== undefined && <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeColors[badgeColor || 'emerald']}`}>{badge}</span>}
-    </div>
-  );
-}
-
-function TimeBlock({ label, period, content, color }: { label: string; period: string; content: string; color: string }) {
-  const colors: Record<string, string> = { blue: 'border-blue-200 bg-blue-50', violet: 'border-violet-200 bg-violet-50', indigo: 'border-indigo-200 bg-indigo-50' };
-  return (
-    <div className={`rounded-xl p-4 border ${colors[color]}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-sm font-medium text-slate-900">{label}</span>
-        <span className="text-xs text-slate-400">({period})</span>
-      </div>
-      <p className="text-slate-600 text-sm leading-relaxed">{content}</p>
     </div>
   );
 }
@@ -720,23 +787,6 @@ function AnimatedTimeBlock({ label, period, content, color, delay }: { label: st
         <span className="text-xs text-slate-400">({period})</span>
       </div>
       <p className="text-slate-600 text-sm leading-relaxed">{content}</p>
-    </div>
-  );
-}
-
-function FactorItem({ factor, type }: { factor: Factor; type: 'bullish' | 'bearish' }) {
-  const confidence = Math.round(factor.confidence * 100);
-  const colors = type === 'bullish' ? { bar: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700' } : { bar: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700' };
-  return (
-    <div className={`${colors.bg} rounded-xl p-3`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className={`${colors.text} text-sm font-medium`}>{factor.factor}</span>
-        <span className="text-slate-400 text-xs">{confidence}%</span>
-      </div>
-      <div className="w-full h-1 bg-white/50 rounded-full mb-2">
-        <div className={`h-full ${colors.bar} rounded-full`} style={{ width: `${confidence}%` }} />
-      </div>
-      <p className="text-slate-600 text-xs leading-relaxed">{factor.reasoning}</p>
     </div>
   );
 }
@@ -767,76 +817,6 @@ function AnimatedFactorItem({ factor, type, delay }: { factor: Factor; type: 'bu
         />
       </div>
       <p className="text-slate-600 text-xs leading-relaxed">{factor.reasoning}</p>
-    </div>
-  );
-}
-
-function RiskItem({ risk }: { risk: RiskFactor }) {
-  const severityColors: Record<string, string> = { high: 'bg-red-100 text-red-700', medium: 'bg-amber-100 text-amber-700', low: 'bg-slate-100 text-slate-600' };
-  return (
-    <div className="bg-slate-50 rounded-lg p-3">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-slate-900 text-sm font-medium">{risk.factor}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${severityColors[risk.severity]}`}>{SEVERITY_LABELS[risk.severity]}</span>
-      </div>
-      <p className="text-slate-500 text-xs leading-relaxed">{risk.description}</p>
-    </div>
-  );
-}
-
-// Animated Risk Item
-function AnimatedRiskItem({ risk, delay }: { risk: RiskFactor; delay: number }) {
-  const mounted = useStaggeredMount(delay);
-  const severityColors: Record<string, string> = { high: 'bg-red-100 text-red-700', medium: 'bg-amber-100 text-amber-700', low: 'bg-slate-100 text-slate-600' };
-
-  return (
-    <div
-      className={`bg-slate-50 rounded-lg p-3 transform transition-all duration-500 ease-out hover:bg-slate-100 ${
-        mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-slate-900 text-sm font-medium">{risk.factor}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full transition-transform duration-200 hover:scale-105 ${severityColors[risk.severity]}`}>
-          {SEVERITY_LABELS[risk.severity]}
-        </span>
-      </div>
-      <p className="text-slate-500 text-xs leading-relaxed">{risk.description}</p>
-    </div>
-  );
-}
-
-function OpportunityItem({ opportunity }: { opportunity: OpportunityFactor }) {
-  const potentialColors: Record<string, string> = { high: 'bg-emerald-100 text-emerald-700', medium: 'bg-cyan-100 text-cyan-700', low: 'bg-slate-100 text-slate-600' };
-  return (
-    <div className="bg-slate-50 rounded-lg p-3">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-slate-900 text-sm font-medium">{opportunity.factor}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${potentialColors[opportunity.potential]}`}>{POTENTIAL_LABELS[opportunity.potential]}</span>
-      </div>
-      <p className="text-slate-500 text-xs leading-relaxed">{opportunity.description}</p>
-    </div>
-  );
-}
-
-// Animated Opportunity Item
-function AnimatedOpportunityItem({ opportunity, delay }: { opportunity: OpportunityFactor; delay: number }) {
-  const mounted = useStaggeredMount(delay);
-  const potentialColors: Record<string, string> = { high: 'bg-emerald-100 text-emerald-700', medium: 'bg-cyan-100 text-cyan-700', low: 'bg-slate-100 text-slate-600' };
-
-  return (
-    <div
-      className={`bg-slate-50 rounded-lg p-3 transform transition-all duration-500 ease-out hover:bg-slate-100 ${
-        mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-slate-900 text-sm font-medium">{opportunity.factor}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full transition-transform duration-200 hover:scale-105 ${potentialColors[opportunity.potential]}`}>
-          {POTENTIAL_LABELS[opportunity.potential]}
-        </span>
-      </div>
-      <p className="text-slate-500 text-xs leading-relaxed">{opportunity.description}</p>
     </div>
   );
 }

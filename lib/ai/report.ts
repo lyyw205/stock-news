@@ -54,6 +54,23 @@ function parseReportResponse(text: string): AIReportResponse {
     throw new Error(`Invalid overallAssessment: ${parsed.overallAssessment}`);
   }
 
+  // New fields with fallbacks for backward compatibility
+  if (!parsed.newsBackground || typeof parsed.newsBackground !== 'string') {
+    parsed.newsBackground = '';
+  }
+  if (!Array.isArray(parsed.relatedStocks)) {
+    parsed.relatedStocks = [];
+  }
+  if (!Array.isArray(parsed.timelineCatalysts)) {
+    parsed.timelineCatalysts = [];
+  }
+  if (!Array.isArray(parsed.keyTerms)) {
+    parsed.keyTerms = [];
+  }
+  if (!Array.isArray(parsed.investorChecklist)) {
+    parsed.investorChecklist = [];
+  }
+
   return parsed as AIReportResponse;
 }
 
@@ -103,6 +120,11 @@ export async function saveAnalysisReport(
       price_impact_summary: report.priceImpact.summary,
       risk_factors: report.riskFactors,
       opportunity_factors: report.opportunityFactors,
+      news_background: report.newsBackground || null,
+      related_stocks: report.relatedStocks || [],
+      timeline_catalysts: report.timelineCatalysts || [],
+      key_terms: report.keyTerms || [],
+      investor_checklist: report.investorChecklist || [],
       processing_time_ms: processingTimeMs,
     })
     .select('id')

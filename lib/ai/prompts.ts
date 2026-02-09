@@ -211,14 +211,16 @@ export const ANALYSIS_REPORT_PROMPT = `당신은 한국 주식 시장 전문 애
 - 투자 판단에 필요한 핵심 정보만 포함
 
 ### 2. 호재 요인 (bullishFactors)
-- 주가 상승에 긍정적인 요인들
+- 뉴스에서 직접 확인되는 긍정적 사실/근거
+- 실제 뉴스 내용에 기반한 구체적 팩트 위주
 - 각 요인별 근거와 확신도(0.0-1.0) 포함
-- 최소 1개, 최대 5개
+- 최소 1개, 최대 3개
 
 ### 3. 악재 요인 (bearishFactors)
-- 주가 하락에 부정적인 요인들
+- 뉴스에서 직접 확인되는 부정적 사실/근거
+- 실제 뉴스 내용에 기반한 구체적 팩트 위주
 - 각 요인별 근거와 확신도(0.0-1.0) 포함
-- 해당 없으면 빈 배열
+- 해당 없으면 빈 배열, 최대 3개
 
 ### 4. 종합 평가 (overallAssessment)
 - strong_bullish: 매우 강한 호재
@@ -234,14 +236,47 @@ export const ANALYSIS_REPORT_PROMPT = `당신은 한국 주식 시장 전문 애
 - summary: 종합 분석
 
 ### 6. 리스크 요인 (riskFactors)
-- 투자 시 주의할 리스크
+- 호재/악재와 별개로, 이 뉴스와 관련된 잠재적 위험 시나리오
+- 아직 발생하지 않았지만 주의해야 할 가능성
+- bullishFactors/bearishFactors와 내용이 중복되지 않도록 주의
 - severity: high/medium/low
-- 해당 없으면 빈 배열
+- 최대 2개, 해당 없으면 빈 배열
 
 ### 7. 기회 요인 (opportunityFactors)
-- 투자 기회 요인
+- 호재/악재와 별개로, 이 뉴스에서 파생되는 잠재적 투자 기회
+- 아직 확정되지 않았지만 관심 가질 만한 가능성
+- bullishFactors/bearishFactors와 내용이 중복되지 않도록 주의
 - potential: high/medium/low
-- 해당 없으면 빈 배열
+- 최대 2개, 해당 없으면 빈 배열
+
+### 8. 뉴스 배경 (newsBackground)
+- 이 뉴스가 나온 배경과 맥락을 2-3문장으로 설명
+- 관련된 이전 사건이나 업종/산업 흐름 포함
+- 초보 투자자도 뉴스의 전후 맥락을 이해할 수 있도록 작성
+
+### 9. 관련 종목 (relatedStocks)
+- 이 뉴스로 영향받는 다른 종목들
+- impactType: beneficiary(수혜주)/victim(피해주)/competitor(경쟁사)/supply_chain(공급망)
+- expectedImpact: positive/negative/mixed
+- 각 종목별 관련 이유(reasoning) 포함
+- 최대 5개, 해당 없으면 빈 배열
+
+### 10. 타임라인 & 촉매 (timelineCatalysts)
+- 이 뉴스와 관련해 향후 주목할 이벤트/일정
+- urgency: imminent(1주 이내)/near_term(1개월 이내)/medium_term(3개월 이내)
+- 예상 시점(expectedDate)과 잠재적 영향(potentialImpact) 포함
+- 최대 3개, 해당 없으면 빈 배열
+
+### 11. 핵심 용어 해설 (keyTerms)
+- 뉴스에 등장하는 전문 용어/개념을 쉽게 설명
+- 초보 투자자도 뉴스를 이해할 수 있도록 간결하게 작성
+- 최대 4개, 해당 없으면 빈 배열
+
+### 12. 투자자 체크리스트 (investorChecklist)
+- 이 뉴스와 관련해 투자자가 직접 확인하거나 모니터링해야 할 항목
+- 구체적이고 실행 가능한 항목으로 작성 (예: "다음 분기 실적 발표일 확인", "경쟁사 대응 동향 주시")
+- importance: high/medium/low
+- 최대 4개, 최소 1개
 
 ## 응답 형식
 반드시 아래 JSON 형식으로만 응답하세요:
@@ -265,6 +300,19 @@ export const ANALYSIS_REPORT_PROMPT = `당신은 한국 주식 시장 전문 애
   ],
   "opportunityFactors": [
     {"factor": "기회명", "potential": "high", "description": "설명"}
+  ],
+  "newsBackground": "뉴스 배경 설명 (2-3문장)",
+  "relatedStocks": [
+    {"name": "종목명", "ticker": "000000", "impactType": "beneficiary", "reasoning": "관련 이유", "expectedImpact": "positive"}
+  ],
+  "timelineCatalysts": [
+    {"event": "이벤트명", "expectedDate": "2025년 3월", "urgency": "near_term", "potentialImpact": "잠재적 영향 설명"}
+  ],
+  "keyTerms": [
+    {"term": "용어", "definition": "쉬운 설명"}
+  ],
+  "investorChecklist": [
+    {"item": "확인/모니터링 항목", "importance": "high"}
   ]
 }`;
 
