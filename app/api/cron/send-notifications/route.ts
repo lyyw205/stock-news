@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dispatchNotifications } from '@/lib/notifications/dispatcher';
+import { verifyCronSecret } from '@/lib/auth/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for notification dispatch
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronSecret(request, 'send-notifications');
+  if (authError) return authError;
 
   try {
     console.log('Starting notification dispatch cron job...');
@@ -31,13 +27,9 @@ export async function GET(request: NextRequest) {
       result,
     });
   } catch (error) {
-    console.error('Notification dispatch cron job failed:', error);
-
+    console.error('[send-notifications] Cron error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'internal_error', message: 'Internal server error' },
       { status: 500 },
     );
   }

@@ -4,6 +4,14 @@ import { useState } from 'react';
 import UnifiedNewsCard, { UnifiedArticle } from './UnifiedNewsCard';
 import { SocialPlatform } from '@/lib/social-media/types';
 
+type CategoryFilter = 'all' | 'stock' | 'crypto';
+
+const CATEGORY_TABS: { id: CategoryFilter; label: string }[] = [
+  { id: 'all', label: '전체' },
+  { id: 'stock', label: '주식' },
+  { id: 'crypto', label: '암호화폐' },
+];
+
 interface UnifiedNewsListProps {
   articles: UnifiedArticle[];
   onSummarize: (articleId: string) => Promise<void>;
@@ -16,10 +24,17 @@ export default function UnifiedNewsList({
   onPublish,
 }: UnifiedNewsListProps) {
   const [generatingSummaries, setGeneratingSummaries] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+
+  // Filter by category
+  const filteredArticles =
+    categoryFilter === 'all'
+      ? articles
+      : articles.filter((a) => (a.category || 'stock') === categoryFilter);
 
   // Separate articles by auto-publish status
-  const autoPublishedArticles = articles.filter((a) => a.autoPublished);
-  const manualArticles = articles.filter((a) => !a.autoPublished);
+  const autoPublishedArticles = filteredArticles.filter((a) => a.autoPublished);
+  const manualArticles = filteredArticles.filter((a) => !a.autoPublished);
 
   const handleSummarize = async (articleId: string) => {
     setGeneratingSummaries((prev) => new Set(prev).add(articleId));
@@ -36,6 +51,32 @@ export default function UnifiedNewsList({
 
   return (
     <div className="space-y-8">
+      {/* Category Filter Tabs */}
+      <div className="flex gap-2">
+        {CATEGORY_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setCategoryFilter(tab.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              categoryFilter === tab.id
+                ? tab.id === 'crypto'
+                  ? 'bg-violet-600 text-white'
+                  : tab.id === 'stock'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-white'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {tab.label}
+            <span className="ml-1.5 text-xs opacity-80">
+              ({tab.id === 'all'
+                ? articles.length
+                : articles.filter((a) => (a.category || 'stock') === tab.id).length})
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Auto-Published Section */}
       {autoPublishedArticles.length > 0 && (
         <section>
@@ -89,9 +130,15 @@ export default function UnifiedNewsList({
       )}
 
       {/* Empty State */}
-      {articles.length === 0 && (
+      {filteredArticles.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600">표시할 뉴스가 없습니다.</p>
+          <p className="text-gray-600">
+            {categoryFilter === 'all'
+              ? '표시할 뉴스가 없습니다.'
+              : categoryFilter === 'crypto'
+                ? '암호화폐 뉴스가 없습니다.'
+                : '주식 뉴스가 없습니다.'}
+          </p>
         </div>
       )}
     </div>

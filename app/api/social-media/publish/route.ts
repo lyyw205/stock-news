@@ -109,10 +109,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in publish API:', error);
 
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'internal_error', message: 'Internal server error' },
       { status: 500 }
     );
   }

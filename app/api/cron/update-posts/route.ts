@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateOutdatedPosts } from '@/lib/services/post-updater';
+import { verifyCronSecret } from '@/lib/auth/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,17 +11,12 @@ export const dynamic = 'force-dynamic';
  * Vercel Cron: 매 시간마다 실행
  */
 export async function GET(request: NextRequest) {
+  const authError = verifyCronSecret(request, 'update-posts');
+  if (authError) return authError;
+
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     console.log('[CRON] Starting post update job...');
-
     const result = await updateOutdatedPosts();
-
     console.log('[CRON] Post update completed:', result);
 
     return NextResponse.json({
@@ -29,12 +25,9 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[CRON] Post update error:', error);
+    console.error('[update-posts] Cron error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { success: false, error: 'internal_error', message: 'Internal server error' },
       { status: 500 },
     );
   }

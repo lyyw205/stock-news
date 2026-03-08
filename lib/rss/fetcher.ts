@@ -3,22 +3,56 @@ import { createClient } from '@supabase/supabase-js';
 import { checkDuplicate, createUrlHash } from '@/lib/utils/dedup';
 import { extractTicker } from '@/lib/ticker/extract';
 
-export const RSS_SOURCES = [
+export type NewsCategory = 'stock' | 'crypto';
+
+export interface RSSSource {
+  name: string;
+  url: string;
+  category: NewsCategory;
+}
+
+export const RSS_SOURCES: RSSSource[] = [
+  // 주식 뉴스
   {
     name: '연합뉴스 경제',
     url: 'https://www.yna.co.kr/rss/economy.xml',
+    category: 'stock',
   },
   {
     name: '매일경제 경제',
     url: 'https://www.mk.co.kr/rss/30100041/',
+    category: 'stock',
   },
   {
     name: '연합뉴스 산업',
     url: 'https://www.yna.co.kr/rss/industry.xml',
+    category: 'stock',
   },
   {
     name: '연합뉴스 IT/과학',
     url: 'https://www.yna.co.kr/rss/it.xml',
+    category: 'stock',
+  },
+  // 암호화폐 뉴스
+  {
+    name: '블루밍비트',
+    url: 'https://bloomingbit.io/rss.xml',
+    category: 'crypto',
+  },
+  {
+    name: '블록미디어',
+    url: 'https://www.blockmedia.co.kr/feed',
+    category: 'crypto',
+  },
+  {
+    name: 'CoinTelegraph',
+    url: 'https://cointelegraph.com/rss',
+    category: 'crypto',
+  },
+  {
+    name: 'CoinDesk',
+    url: 'https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml',
+    category: 'crypto',
   },
 ];
 
@@ -29,7 +63,7 @@ export interface FetchResult {
   total: number;
 }
 
-export async function fetchAllRSSSources(): Promise<FetchResult> {
+export async function fetchAllRSSSources(category?: NewsCategory): Promise<FetchResult> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -44,7 +78,9 @@ export async function fetchAllRSSSources(): Promise<FetchResult> {
   let errorCount = 0;
   let totalArticles = 0;
 
-  for (const source of RSS_SOURCES) {
+  const sources = category ? RSS_SOURCES.filter(s => s.category === category) : RSS_SOURCES;
+
+  for (const source of sources) {
     try {
       console.log(`Fetching from ${source.name}...`);
       const articles = await fetchRSSFeed(source.url);
@@ -62,6 +98,7 @@ export async function fetchAllRSSSources(): Promise<FetchResult> {
           // Extract ticker from title and description
           const ticker = extractTicker(
             `${article.title} ${article.description || ''}`,
+            source.category,
           );
 
           const urlHash = createUrlHash(article.link);
@@ -76,6 +113,7 @@ export async function fetchAllRSSSources(): Promise<FetchResult> {
             ticker: ticker,
             ticker_confidence: ticker ? 0.9 : 0.0,
             is_processed: false,
+            category: source.category,
           });
 
           if (error) {

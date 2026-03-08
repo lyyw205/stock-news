@@ -109,7 +109,7 @@ describe('Subscriptions API', () => {
         },
       );
 
-      const response = await DELETE(request, { params: { id: subscriptionId } });
+      const response = await DELETE(request, { params: Promise.resolve({ id: subscriptionId }) });
       const data = await response.json();
 
       expect(response.status).toBe(200);

@@ -1,0 +1,492 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1772971804997,
+  "projectRoot": "/home/lyyw205/repos/stock-news",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "15.0.0",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "18.3.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.3.0",
+        "category": "frontend"
+      },
+      {
+        "name": "jest",
+        "version": "29.5.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "type-check": "tsc --noEmit",
+      "format:check": "prettier --check .",
+      "format": "prettier --write .",
+      "test": "jest",
+      "test:watch": "jest --watch",
+      "test:coverage": "jest --coverage",
+      "migrate": "node scripts/run-migration.js",
+      "migrate:dedup": "node scripts/run-migration.js supabase/migrations/004_deduplication_support.sql",
+      "migrate:autopublish": "node scripts/run-migration.js supabase/migrations/005_auto_publish_support.sql"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "components",
+      "lib",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 3,
+      "lastAccessed": 1772971804978,
+      "keyFiles": [
+        "globals.css",
+        "layout.tsx",
+        "page.tsx"
+      ]
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 5,
+      "lastAccessed": 1772971804979,
+      "keyFiles": [
+        "NewsCard.tsx",
+        "NewsFeed.tsx",
+        "RadarChart.tsx",
+        "ScoreDisplay.tsx",
+        "SubscriptionManager.tsx"
+      ]
+    },
+    "lib": {
+      "path": "lib",
+      "purpose": "Library code",
+      "fileCount": 0,
+      "lastAccessed": 1772971804988,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 3,
+      "lastAccessed": 1772971804989,
+      "keyFiles": [
+        "fetch-and-process.sh",
+        "run-migration.js",
+        "run-migration.sh"
+      ]
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1772971804991,
+      "keyFiles": [
+        "config.toml"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 0,
+      "lastAccessed": 1772971804992,
+      "keyFiles": []
+    },
+    "app/api": {
+      "path": "app/api",
+      "purpose": "API routes",
+      "fileCount": 0,
+      "lastAccessed": 1772971804992,
+      "keyFiles": []
+    },
+    "lib/config": {
+      "path": "lib/config",
+      "purpose": "Configuration files",
+      "fileCount": 1,
+      "lastAccessed": 1772971804993,
+      "keyFiles": [
+        "scores.ts"
+      ]
+    },
+    "lib/services": {
+      "path": "lib/services",
+      "purpose": "Business logic services",
+      "fileCount": 2,
+      "lastAccessed": 1772971804993,
+      "keyFiles": [
+        "deduplication.ts",
+        "post-updater.ts"
+      ]
+    },
+    "supabase/migrations": {
+      "path": "supabase/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 7,
+      "lastAccessed": 1772971804994,
+      "keyFiles": [
+        "20250205000001_initial_schema.sql",
+        "20250205000002_social_media_schema.sql",
+        "20250205000003_add_news_scores.sql"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 78,
+      "lastAccessed": 1772984087802,
+      "type": "directory"
+    },
+    {
+      "path": "lib/social-media/dispatcher.ts",
+      "accessCount": 36,
+      "lastAccessed": 1772984577447,
+      "type": "file"
+    },
+    {
+      "path": "app/api/news/unified/route.ts",
+      "accessCount": 35,
+      "lastAccessed": 1772984474777,
+      "type": "file"
+    },
+    {
+      "path": "app/api/cron/fetch-rss/route.ts",
+      "accessCount": 20,
+      "lastAccessed": 1772984402401,
+      "type": "file"
+    },
+    {
+      "path": "lib/rss/fetcher.ts",
+      "accessCount": 18,
+      "lastAccessed": 1772981456747,
+      "type": "file"
+    },
+    {
+      "path": "app/api/cron/process-articles/route.ts",
+      "accessCount": 18,
+      "lastAccessed": 1772984421034,
+      "type": "file"
+    },
+    {
+      "path": "app/dashboard-unified/page.tsx",
+      "accessCount": 17,
+      "lastAccessed": 1772984077243,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/processor.ts",
+      "accessCount": 16,
+      "lastAccessed": 1772981440843,
+      "type": "file"
+    },
+    {
+      "path": "lib/services/deduplication.ts",
+      "accessCount": 16,
+      "lastAccessed": 1772981441225,
+      "type": "file"
+    },
+    {
+      "path": "app/api/summaries/generate/route.ts",
+      "accessCount": 15,
+      "lastAccessed": 1772984078010,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 15,
+      "lastAccessed": 1772984093274,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/score.ts",
+      "accessCount": 13,
+      "lastAccessed": 1772981445205,
+      "type": "file"
+    },
+    {
+      "path": "lib/subscriptions/validate.ts",
+      "accessCount": 11,
+      "lastAccessed": 1772983172770,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/prompts.ts",
+      "accessCount": 10,
+      "lastAccessed": 1772981444625,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/summarize.ts",
+      "accessCount": 10,
+      "lastAccessed": 1772981445732,
+      "type": "file"
+    },
+    {
+      "path": "components/unified/UnifiedNewsList.tsx",
+      "accessCount": 9,
+      "lastAccessed": 1772983153296,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/types.ts",
+      "accessCount": 9,
+      "lastAccessed": 1772984573265,
+      "type": "file"
+    },
+    {
+      "path": "scripts/cli-save.ts",
+      "accessCount": 8,
+      "lastAccessed": 1772979376456,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/report.ts",
+      "accessCount": 8,
+      "lastAccessed": 1772981448290,
+      "type": "file"
+    },
+    {
+      "path": "scripts/cli-fetch.ts",
+      "accessCount": 8,
+      "lastAccessed": 1772981452105,
+      "type": "file"
+    },
+    {
+      "path": "lib/ticker/extract.ts",
+      "accessCount": 8,
+      "lastAccessed": 1772981457174,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/auto-publisher.ts",
+      "accessCount": 7,
+      "lastAccessed": 1772983190363,
+      "type": "file"
+    },
+    {
+      "path": "supabase/migrations/20250205000001_initial_schema.sql",
+      "accessCount": 6,
+      "lastAccessed": 1772981435162,
+      "type": "file"
+    },
+    {
+      "path": "lib/services/cross-language-dedup.ts",
+      "accessCount": 6,
+      "lastAccessed": 1772981447073,
+      "type": "file"
+    },
+    {
+      "path": "components/unified/UnifiedNewsCard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1772977428217,
+      "type": "file"
+    },
+    {
+      "path": "scripts/cli-list.ts",
+      "accessCount": 5,
+      "lastAccessed": 1772979362460,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 5,
+      "lastAccessed": 1772981431062,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/formatters/threads-formatter.ts",
+      "accessCount": 5,
+      "lastAccessed": 1772981434533,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/formatters/toss-formatter.ts",
+      "accessCount": 5,
+      "lastAccessed": 1772981435134,
+      "type": "file"
+    },
+    {
+      "path": "lib/utils/text-similarity.ts",
+      "accessCount": 5,
+      "lastAccessed": 1772981446541,
+      "type": "file"
+    },
+    {
+      "path": "lib/config/scores.ts",
+      "accessCount": 5,
+      "lastAccessed": 1772984328437,
+      "type": "file"
+    },
+    {
+      "path": "supabase/migrations/20250308000001_add_category_column.sql",
+      "accessCount": 4,
+      "lastAccessed": 1772981381962,
+      "type": "file"
+    },
+    {
+      "path": "lib/types/scores.ts",
+      "accessCount": 4,
+      "lastAccessed": 1772981404270,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/formatters/telegram-formatter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1772981426876,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/formatters/twitter-formatter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1772981427331,
+      "type": "file"
+    },
+    {
+      "path": "lib/ai/gemini.ts",
+      "accessCount": 4,
+      "lastAccessed": 1772981445664,
+      "type": "file"
+    },
+    {
+      "path": "vercel.json",
+      "accessCount": 4,
+      "lastAccessed": 1772983176659,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media",
+      "accessCount": 4,
+      "lastAccessed": 1772983185296,
+      "type": "directory"
+    },
+    {
+      "path": "tests/unit/api/subscriptions.test.ts",
+      "accessCount": 4,
+      "lastAccessed": 1772983970112,
+      "type": "file"
+    },
+    {
+      "path": "lib/utils/ticker-names.ts",
+      "accessCount": 3,
+      "lastAccessed": 1772974553362,
+      "type": "file"
+    },
+    {
+      "path": "supabase/migrations/20250205000005_auto_publish_support.sql",
+      "accessCount": 3,
+      "lastAccessed": 1772981380669,
+      "type": "file"
+    },
+    {
+      "path": "lib/utils/dedup.ts",
+      "accessCount": 3,
+      "lastAccessed": 1772981407633,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/ticker/extract.test.ts",
+      "accessCount": 3,
+      "lastAccessed": 1772981433922,
+      "type": "file"
+    },
+    {
+      "path": "tests/unit/subscriptions/validate.test.ts",
+      "accessCount": 3,
+      "lastAccessed": 1772981434339,
+      "type": "directory"
+    },
+    {
+      "path": "tests/unit/rss/fetcher.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1772981434820,
+      "type": "file"
+    },
+    {
+      "path": "lib/rss/parser.ts",
+      "accessCount": 2,
+      "lastAccessed": 1772981465289,
+      "type": "file"
+    },
+    {
+      "path": "supabase/migrations",
+      "accessCount": 2,
+      "lastAccessed": 1772981466339,
+      "type": "directory"
+    },
+    {
+      "path": "app/page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1772971835486,
+      "type": "file"
+    },
+    {
+      "path": "lib/social-media/formatters/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1772973939618,
+      "type": "file"
+    },
+    {
+      "path": "app/api/summaries",
+      "accessCount": 1,
+      "lastAccessed": 1772974446800,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

@@ -18,6 +18,7 @@
     "migrate:autopublish": "node scripts/run-migration.js supabase/migrations/005_auto_publish_support.sql"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@google/generative-ai": "^0.1.0",
     "@nivo/core": "^0.99.0",
     "@nivo/radar": "^0.99.0",

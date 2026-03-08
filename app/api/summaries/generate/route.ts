@@ -4,11 +4,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/auth/supabase-server';
+import { createServerSupabaseClient, getUserFromRequest } from '@/lib/auth/supabase-server';
 import { summarizeNews } from '@/lib/ai/summarize';
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { articleId } = await request.json();
 
     if (!articleId) {
@@ -23,7 +27,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch article from database
     const { data: article, error: articleError } = await supabase
       .from('news_articles')
-      .select('id, title, description')
+      .select('id, title, description, category')
       .eq('id', articleId)
       .single();
 
@@ -53,7 +57,8 @@ export async function POST(request: NextRequest) {
     // 3. Generate new summary
     const summaryResult = await summarizeNews(
       article.title,
-      article.description || ''
+      article.description || '',
+      article.category || 'stock',
     );
 
     // 4. Update database with generated summary
@@ -72,10 +77,10 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // This shouldn't happen in normal flow (score should exist)
+      // Article exists but has no score record yet
       return NextResponse.json(
-        { error: 'No summary record found for article' },
-        { status: 404 }
+        { error: 'not_scored', message: 'Article has not been scored yet. Score the article first.' },
+        { status: 422 }
       );
     }
 

@@ -8,13 +8,17 @@ import { NewsContent, FormattedContent } from '../types';
 const MAX_LENGTH = 1000;
 
 export function formatForToss(news: NewsContent): FormattedContent {
-  const { ticker, title, summary, url, pubDate } = news;
+  const { ticker, title, summary, url, pubDate, category } = news;
 
   // Format date in simple style
   const formattedDate = formatDate(pubDate);
 
+  // Category-aware ticker display
+  const isCrypto = category === 'crypto';
+  const tickerDisplay = isCrypto ? `$${ticker}` : ticker;
+
   // Build Toss post with concise format
-  let text = `[${ticker}] ${title}
+  let text = `[${tickerDisplay}] ${title}
 
 ${summary}
 
@@ -27,7 +31,7 @@ ${summary}
     const overhead = text.length - MAX_LENGTH;
     const truncatedSummary = summary.substring(0, summary.length - overhead - 3) + '...';
 
-    text = `[${ticker}] ${title}
+    text = `[${tickerDisplay}] ${title}
 
 ${truncatedSummary}
 

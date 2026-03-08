@@ -24,9 +24,10 @@ export interface ScoreOnlyResult {
 export async function scoreNewsOnly(
   title: string,
   description: string,
+  category?: 'stock' | 'crypto',
 ): Promise<ScoreOnlyResult> {
   try {
-    const prompt = formatScoreOnlyPrompt(title, description);
+    const prompt = formatScoreOnlyPrompt(title, description, category);
     const response = await generateContent(prompt);
 
     // Parse JSON response

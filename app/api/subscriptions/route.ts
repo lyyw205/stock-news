@@ -32,7 +32,11 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id);
 
     if (fetchError) {
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+      console.error('[subscriptions] DB error fetching subscriptions:', fetchError);
+      return NextResponse.json(
+        { error: 'database_error', message: 'Failed to process subscription' },
+        { status: 500 }
+      );
     }
 
     const existingTickers = existing?.map((s) => s.ticker) || [];
@@ -64,17 +68,25 @@ export async function POST(request: NextRequest) {
     });
 
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      console.error('[subscriptions] DB error inserting subscription:', insertError);
+      return NextResponse.json(
+        { error: 'database_error', message: 'Failed to create subscription' },
+        { status: 500 }
+      );
     }
+
+    // remaining reflects slots left after this insert
+    const remainingAfterInsert = limitCheck.remaining - 1;
 
     return NextResponse.json({
       success: true,
       message: 'Subscription created',
-      remaining: limitCheck.remaining - 1,
+      remaining: remainingAfterInsert,
     });
   } catch (error) {
+    console.error('[subscriptions] POST error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'internal_error', message: 'Internal server error' },
       { status: 500 },
     );
   }
@@ -97,15 +109,20 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[subscriptions] DB error fetching list:', error);
+      return NextResponse.json(
+        { error: 'database_error', message: 'Failed to fetch subscriptions' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       subscriptions: subscriptions || [],
     });
   } catch (error) {
+    console.error('[subscriptions] GET error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'internal_error', message: 'Internal server error' },
       { status: 500 },
     );
   }

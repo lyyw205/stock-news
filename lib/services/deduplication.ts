@@ -7,6 +7,10 @@ import {
   DUPLICATE_THRESHOLD,
   type NewsItem,
 } from '@/lib/utils/text-similarity';
+import {
+  checkCrossLanguageDuplicate,
+  isDifferentLanguage,
+} from './cross-language-dedup';
 
 export interface NewsArticleForDedup {
   id?: string;
@@ -152,13 +156,28 @@ export async function findExistingDuplicate(
 
   // 유사도 계산하여 중복 찾기
   for (const existing of recentArticles) {
-    const similarity = newsSimilarity(
-      { title: newArticle.title, description: newArticle.description },
-      { title: existing.title, description: existing.description },
-    );
+    // 같은 언어면 기존 텍스트 유사도 사용
+    if (!isDifferentLanguage(newArticle.title, existing.title)) {
+      const similarity = newsSimilarity(
+        { title: newArticle.title, description: newArticle.description },
+        { title: existing.title, description: existing.description },
+      );
 
-    if (similarity >= DUPLICATE_THRESHOLD) {
-      return existing;
+      if (similarity >= DUPLICATE_THRESHOLD) {
+        return existing;
+      }
+    } else {
+      // 다른 언어면 AI 기반 크로스 언어 중복 체크
+      const result = await checkCrossLanguageDuplicate(
+        newArticle.title,
+        newArticle.description,
+        existing.title,
+        existing.description,
+      );
+
+      if (result.isDuplicate && result.confidence >= 0.7) {
+        return existing;
+      }
     }
   }
 

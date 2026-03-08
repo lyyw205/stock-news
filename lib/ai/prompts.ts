@@ -191,8 +191,230 @@ sentiment: -2(매우악재), -1(악재), 0(중립), +1(호재), +2(매우호재)
   "reasoning": "점수 산정 근거 (한 문장)"
 }`;
 
-export function formatScoreOnlyPrompt(title: string, description: string): string {
-  return SCORE_ONLY_PROMPT.replace('{title}', title).replace('{description}', description);
+export const SCORE_ONLY_PROMPT_CRYPTO = `당신은 암호화폐/가상자산 뉴스 점수 평가 전문가입니다.
+
+다음 뉴스를 암호화폐 투자자 관점에서 평가하여 점수를 산정해주세요. 요약은 생성하지 마세요.
+입력이 영어인 경우에도 reasoning은 반드시 한국어로 작성하세요.
+
+## 뉴스 정보
+제목: {title}
+내용: {description}
+
+## 점수 산정 기준 (각 1-10점)
+
+### 시각화용 6가지 지표
+1. impact (영향력): 코인/토큰 가격에 미치는 영향 규모 (1=미미, 10=큰 영향)
+2. urgency (긴급성): 가격 반영 속도 (1=장기, 10=즉시)
+3. certainty (확실성): 정보 신뢰도 (1=루머, 10=온체인 데이터/공식 발표)
+4. durability (지속성): 효과 지속 기간 (1=일회성, 10=구조적 변화)
+5. attention (관심도): 투자자/커뮤니티 예상 관심 (1=낮음, 10=높음)
+6. relevance (연관성): 현재 시장 테마 관련성 (1=무관, 10=DeFi/L2/RWA/반감기 등 핫테마)
+
+### 계산용 3가지 지표
+7. sectorImpact (섹터 영향): 암호화폐 생태계 전체 영향 범위 (1=해당 코인만, 10=시장 전체)
+8. institutionalInterest (기관 관심도): 기관/고래 지갑/ETF 유입 관심 예상 (1=개인만, 10=기관큰관심)
+9. volatility (변동성): 예상 가격 변동폭 (1=미미, 10=큰변동)
+
+### 투자 심리 (-2 ~ +2)
+sentiment: -2(매우악재), -1(악재), 0(중립), +1(호재), +2(매우호재)
+
+## 응답 형식
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "scores": {
+    "impact": 1-10,
+    "urgency": 1-10,
+    "certainty": 1-10,
+    "durability": 1-10,
+    "attention": 1-10,
+    "relevance": 1-10,
+    "sectorImpact": 1-10,
+    "institutionalInterest": 1-10,
+    "volatility": 1-10,
+    "sentiment": -2 ~ +2
+  },
+  "reasoning": "점수 산정 근거 (한 문장, 한국어)"
+}`;
+
+export const SUMMARIZE_PROMPT_CRYPTO = `당신은 암호화폐/가상자산 뉴스 요약 전문가입니다.
+
+다음 뉴스 기사를 정확히 2-3문장으로 요약해주세요.
+입력이 영어인 경우에도 반드시 한국어로 요약하세요.
+
+요약 규칙:
+- 반드시 2-3문장으로 작성 (절대 초과 금지)
+- 핵심 정보만 포함 (코인명, 가격, 주요 사건)
+- 불필요한 수식어 제거
+- 명확하고 간결한 한국어 사용
+- 투자 판단에 도움되는 정보 우선
+
+제목: {title}
+내용: {description}
+
+요약문만 작성하세요 (JSON이나 다른 형식 없이):`;
+
+export const FILTER_PROMPT_CRYPTO = `당신은 암호화폐/가상자산 뉴스 필터링 전문가입니다.
+
+다음 뉴스 기사가 암호화폐 투자자에게 "유용한" 뉴스인지 판단해주세요.
+
+유용한 뉴스의 기준:
+- 특정 코인/토큰의 주요 업데이트, 네트워크 업그레이드
+- 규제 변화, 법률 변화로 인한 영향
+- 기관 투자, ETF 승인/거부, 고래 지갑 움직임
+- DeFi 프로토콜의 주요 사건 (해킹, TVL 변화)
+- 가격에 직접적인 영향을 줄 수 있는 구체적 사건
+
+무용한 뉴스의 기준:
+- 일반적인 시장 전망, 추상적 논평
+- 특정 코인과 무관한 시장 동향
+- 인플루언서의 일반적 의견
+- 너무 오래된 뉴스의 재탕
+- 가격 움직임만 언급하고 원인 없음
+
+제목: {title}
+내용: {description}
+
+다음 JSON 형식으로만 응답하세요:
+{
+  "isUseful": true 또는 false,
+  "confidence": 0.0에서 1.0 사이의 숫자,
+  "reasoning": "판단 이유를 한 문장으로"
+}`;
+
+export const ANALYSIS_REPORT_PROMPT_CRYPTO = `당신은 암호화폐/가상자산 시장 전문 애널리스트입니다.
+
+다음 뉴스 기사를 심층 분석하여 암호화폐 투자자를 위한 상세 리포트를 작성해주세요.
+입력이 영어인 경우에도 반드시 한국어로 분석하세요.
+
+## 뉴스 정보
+제목: {title}
+내용: {description}
+기존 요약: {summary}
+
+## 분석 항목
+
+### 1. 핵심 요약 (coreSummary)
+- 3-5문장으로 핵심 내용 요약
+- 투자 판단에 필요한 핵심 정보만 포함
+
+### 2. 호재 요인 (bullishFactors)
+- 뉴스에서 직접 확인되는 긍정적 사실/근거
+- 각 요인별 근거와 확신도(0.0-1.0) 포함
+- 최소 1개, 최대 3개
+
+### 3. 악재 요인 (bearishFactors)
+- 뉴스에서 직접 확인되는 부정적 사실/근거
+- 각 요인별 근거와 확신도(0.0-1.0) 포함
+- 해당 없으면 빈 배열, 최대 3개
+
+### 4. 종합 평가 (overallAssessment)
+- strong_bullish / bullish / neutral / bearish / strong_bearish
+
+### 5. 가격 영향 분석 (priceImpact)
+- short: 단기 (1주) 예상 영향
+- medium: 중기 (1-3개월) 예상 영향
+- long: 장기 (6개월+) 예상 영향
+- summary: 종합 분석
+
+### 6. 리스크 요인 (riskFactors)
+- severity: high/medium/low, 최대 2개
+
+### 7. 기회 요인 (opportunityFactors)
+- potential: high/medium/low, 최대 2개
+
+### 8. 뉴스 배경 (newsBackground)
+- 2-3문장으로 배경과 맥락 설명
+
+### 9. 관련 코인 (relatedStocks)
+- impactType: beneficiary/victim/competitor/supply_chain
+- expectedImpact: positive/negative/mixed
+- 최대 5개
+
+### 10. 타임라인 & 촉매 (timelineCatalysts)
+- urgency: imminent/near_term/medium_term, 최대 3개
+
+### 11. 핵심 용어 해설 (keyTerms)
+- 최대 4개
+
+### 12. 투자자 체크리스트 (investorChecklist)
+- importance: high/medium/low, 최대 4개
+
+## 응답 형식
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "coreSummary": "핵심 요약 (3-5문장)",
+  "bullishFactors": [
+    {"factor": "요인명", "reasoning": "근거 설명", "confidence": 0.8}
+  ],
+  "bearishFactors": [
+    {"factor": "요인명", "reasoning": "근거 설명", "confidence": 0.7}
+  ],
+  "overallAssessment": "bullish",
+  "priceImpact": {
+    "short": "단기 영향 분석",
+    "medium": "중기 영향 분석",
+    "long": "장기 영향 분석",
+    "summary": "종합 분석"
+  },
+  "riskFactors": [
+    {"factor": "리스크명", "severity": "high", "description": "설명"}
+  ],
+  "opportunityFactors": [
+    {"factor": "기회명", "potential": "high", "description": "설명"}
+  ],
+  "newsBackground": "뉴스 배경 설명 (2-3문장)",
+  "relatedStocks": [
+    {"name": "코인명", "ticker": "BTC", "impactType": "beneficiary", "reasoning": "관련 이유", "expectedImpact": "positive"}
+  ],
+  "timelineCatalysts": [
+    {"event": "이벤트명", "expectedDate": "2025년 3월", "urgency": "near_term", "potentialImpact": "잠재적 영향 설명"}
+  ],
+  "keyTerms": [
+    {"term": "용어", "definition": "쉬운 설명"}
+  ],
+  "investorChecklist": [
+    {"item": "확인/모니터링 항목", "importance": "high"}
+  ]
+}`;
+
+export function formatScoreOnlyPrompt(
+  title: string,
+  description: string,
+  category?: 'stock' | 'crypto',
+): string {
+  const template = category === 'crypto' ? SCORE_ONLY_PROMPT_CRYPTO : SCORE_ONLY_PROMPT;
+  return template.replace('{title}', title).replace('{description}', description);
+}
+
+export function formatFilterPromptByCategory(
+  title: string,
+  description: string,
+  category?: 'stock' | 'crypto',
+): string {
+  const template = category === 'crypto' ? FILTER_PROMPT_CRYPTO : FILTER_PROMPT;
+  return template.replace('{title}', title).replace('{description}', description);
+}
+
+export function formatSummarizePromptByCategory(
+  title: string,
+  description: string,
+  category?: 'stock' | 'crypto',
+): string {
+  const template = category === 'crypto' ? SUMMARIZE_PROMPT_CRYPTO : SUMMARIZE_PROMPT;
+  return template.replace('{title}', title).replace('{description}', description);
+}
+
+export function formatAnalysisReportPromptByCategory(
+  title: string,
+  description: string,
+  summary: string | null,
+  category?: 'stock' | 'crypto',
+): string {
+  const template = category === 'crypto' ? ANALYSIS_REPORT_PROMPT_CRYPTO : ANALYSIS_REPORT_PROMPT;
+  return template
+    .replace('{title}', title)
+    .replace('{description}', description)
+    .replace('{summary}', summary || '(요약 없음)');
 }
 
 export const ANALYSIS_REPORT_PROMPT = `당신은 한국 주식 시장 전문 애널리스트입니다.

@@ -4,13 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/auth/supabase-server';
+import { createServerSupabaseClient, getUserFromRequest } from '@/lib/auth/supabase-server';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ articleId: string }> }
 ) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { articleId } = await params;
 
     if (!articleId) {
@@ -120,9 +124,9 @@ export async function GET(
       exists: true,
     });
   } catch (error) {
-    console.error('Error fetching report:', error);
+    console.error('[reports/articleId] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch report' },
+      { success: false, error: 'internal_error', message: 'Internal server error' },
       { status: 500 }
     );
   }

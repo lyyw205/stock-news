@@ -135,9 +135,11 @@ export async function processUnprocessedArticles(
       }
 
       // Step 1: Score news (without summary generation)
+      const category = article.category || 'stock';
       const scoreResult = await scoreNewsOnly(
         article.title,
         article.description || '',
+        category,
       );
 
       scoredCount++;
@@ -184,6 +186,7 @@ export async function processUnprocessedArticles(
           const summaryTextResult = await summarizeNews(
             article.title,
             article.description || '',
+            category,
           );
 
           // Update summary with generated text
@@ -214,6 +217,7 @@ export async function processUnprocessedArticles(
               article.title,
               article.description || '',
               summaryTextResult.summary,
+              category,
             );
 
             await saveAnalysisReport(

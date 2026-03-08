@@ -4,7 +4,7 @@
  */
 
 import { generateContent } from './gemini';
-import { formatAnalysisReportPrompt } from './prompts';
+import { formatAnalysisReportPrompt, formatAnalysisReportPromptByCategory } from './prompts';
 import type { AIReportResponse, GenerationType } from '@/lib/types/report';
 
 /**
@@ -81,10 +81,11 @@ export async function generateAnalysisReport(
   title: string,
   description: string,
   summary: string | null,
+  category?: 'stock' | 'crypto',
 ): Promise<{ report: AIReportResponse; processingTimeMs: number }> {
   const startTime = Date.now();
 
-  const prompt = formatAnalysisReportPrompt(title, description, summary);
+  const prompt = formatAnalysisReportPromptByCategory(title, description, summary, category);
   const response = await generateContent(prompt);
   const report = parseReportResponse(response);
 

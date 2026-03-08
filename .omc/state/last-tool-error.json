@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"npm run type-check 2>&1\",\"timeout\":60000,\"description\":\"TypeScript type-check after simplify fixes\"}",
+  "error": "Exit code 2\n\n> korean-stock-news@0.1.0 type-check\n> tsc --noEmit\n\nlib/social-media/dispatcher.ts(127,5): error TS2322: Type 'string' is not assignable to type '\"stock\" | \"crypto\" | undefined'.",
+  "timestamp": "2026-03-08T15:42:44.748Z",
+  "retry_count": 1
+}

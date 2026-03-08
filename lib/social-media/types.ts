@@ -22,6 +22,7 @@ export interface NewsContent {
   pubDate: Date;
   articleId: string;
   summaryId: string;
+  category?: 'stock' | 'crypto';
 }
 
 /**

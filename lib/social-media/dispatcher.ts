@@ -25,6 +25,32 @@ export async function publishToSocialMedia(
 
   const supabase = createServerSupabaseClient();
 
+  // Check for duplicate publish (idempotency) — scoped by platforms
+  const { data: existingPosts } = await supabase
+    .from('social_media_posts')
+    .select('id, status, platforms')
+    .eq('article_id', articleId)
+    .in('status', ['completed', 'processing']);
+
+  const alreadyPublished = existingPosts?.some((post) => {
+    const postPlatforms = (post.platforms as SocialPlatform[]) || [];
+    return platforms.every((p) => postPlatforms.includes(p));
+  });
+
+  if (alreadyPublished) {
+    const existing = existingPosts![0];
+    return {
+      postId: existing.id,
+      articleId,
+      status: existing.status as PostStatus,
+      successCount: 0,
+      failureCount: 0,
+      results: [],
+      createdAt: new Date(),
+      completedAt: new Date(),
+    };
+  }
+
   // 1. Fetch article and summary from database
   const newsContent = await fetchNewsContent(articleId);
 
@@ -68,9 +94,10 @@ async function fetchNewsContent(articleId: string): Promise<NewsContent | null> 
       title,
       url,
       pub_date,
+      category,
       summaries!inner (
         id,
-        summary,
+        summary_text,
         is_useful
       )
     `
@@ -94,9 +121,10 @@ async function fetchNewsContent(articleId: string): Promise<NewsContent | null> 
     summaryId: summary.id,
     ticker: data.ticker,
     title: data.title,
-    summary: summary.summary,
+    summary: summary.summary_text,
     url: data.url,
     pubDate: new Date(data.pub_date),
+    category: (data.category as 'stock' | 'crypto') || 'stock',
   };
 }
 

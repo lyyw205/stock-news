@@ -6,13 +6,21 @@
 import { NewsContent, FormattedContent } from '../types';
 
 export function formatForTelegram(news: NewsContent): FormattedContent {
-  const { ticker, title, summary, url, pubDate } = news;
+  const { ticker, title, summary, url, pubDate, category } = news;
 
   // Format date in Korean style
   const formattedDate = formatDate(pubDate);
 
+  // Category-aware formatting
+  const isCrypto = category === 'crypto';
+  const icon = isCrypto ? '🪙' : '🏢';
+  const tickerDisplay = isCrypto ? `$${ticker}` : ticker;
+  const hashtags = isCrypto
+    ? `#${ticker} #암호화폐 #크립토`
+    : `#${ticker} #한국주식 #뉴스`;
+
   // Build Telegram message with Markdown formatting
-  const text = `🏢 **${ticker}** 관련 뉴스
+  const text = `${icon} **${tickerDisplay}** 관련 뉴스
 
 📰 **${title}**
 
@@ -22,7 +30,7 @@ ${summary}
 
 🔗 [전체 기사 읽기](${url})
 
-#${ticker} #한국주식 #뉴스`;
+${hashtags}`;
 
   return {
     platform: 'telegram',

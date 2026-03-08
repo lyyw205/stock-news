@@ -19,14 +19,26 @@ export async function DELETE(
 
     const supabase = createServerSupabaseClient();
 
-    const { error } = await supabase
+    const { data: deleted, error } = await supabase
       .from('subscriptions')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select('id');
+
+    if (!error && (!deleted || deleted.length === 0)) {
+      return NextResponse.json(
+        { error: 'not_found', message: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[subscriptions] DB error deleting:', error);
+      return NextResponse.json(
+        { error: 'database_error', message: 'Failed to delete subscription' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -34,8 +46,9 @@ export async function DELETE(
       message: 'Subscription deleted',
     });
   } catch (error) {
+    console.error('[subscriptions] DELETE error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'internal_error', message: 'Internal server error' },
       { status: 500 },
     );
   }

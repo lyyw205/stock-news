@@ -5,12 +5,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getUserFromRequest } from '@/lib/auth/supabase-server';
 import { generateAnalysisReport, saveAnalysisReport, getReportByArticleId } from '@/lib/ai/report';
 import type { GenerationType } from '@/lib/types/report';
 
 export async function POST(request: NextRequest) {
   try {
-    const { articleId, generationType = 'manual' } = await request.json();
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const body = await request.json();
+    const { articleId } = body;
+    const validTypes = ['auto', 'manual'] as const;
+    const generationType = validTypes.includes(body.generationType) ? body.generationType : 'manual';
 
     if (!articleId) {
       return NextResponse.json(
@@ -93,9 +101,9 @@ export async function POST(request: NextRequest) {
       isNew: true,
     });
   } catch (error) {
-    console.error('Error generating report:', error);
+    console.error('[reports/generate] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate report' },
+      { error: 'internal_error', message: 'Internal server error' },
       { status: 500 }
     );
   }

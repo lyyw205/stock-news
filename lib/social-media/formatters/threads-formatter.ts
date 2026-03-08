@@ -8,15 +8,23 @@ import { NewsContent, FormattedContent } from '../types';
 const MAX_LENGTH = 500;
 
 export function formatForThreads(news: NewsContent): FormattedContent {
-  const { ticker, title, summary, url, pubDate } = news;
+  const { ticker, title, summary, url, pubDate, category } = news;
 
   // Format date
   const formattedDate = formatDate(pubDate);
 
+  // Category-aware formatting
+  const isCrypto = category === 'crypto';
+  const icon = isCrypto ? '🪙' : '📈';
+  const tickerDisplay = isCrypto ? `$${ticker}` : ticker;
+  const hashtags = isCrypto
+    ? `#${ticker} #암호화폐 #크립토`
+    : `#${ticker} #한국주식 #뉴스`;
+
   // Build Threads post with visual separators
   const separator = '━━━━━━━━━━';
 
-  let text = `📈 ${ticker} 관련 뉴스
+  let text = `${icon} ${tickerDisplay} 관련 뉴스
 
 ${separator}
 
@@ -29,12 +37,12 @@ ${separator}
 📅 ${formattedDate}
 🔗 ${url}
 
-#${ticker} #한국주식 #뉴스`;
+${hashtags}`;
 
   // Truncate if needed
   if (text.length > MAX_LENGTH) {
     // Try to fit without summary
-    const withoutSummary = `📈 ${ticker} 관련 뉴스
+    const withoutSummary = `${icon} ${tickerDisplay} 관련 뉴스
 
 ${separator}
 
@@ -45,7 +53,7 @@ ${separator}
 📅 ${formattedDate}
 🔗 ${url}
 
-#${ticker} #한국주식`;
+${hashtags}`;
 
     if (withoutSummary.length <= MAX_LENGTH) {
       text = withoutSummary;

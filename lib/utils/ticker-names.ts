@@ -42,6 +42,32 @@ export const TICKER_NAMES: Record<string, string> = {
   '017670': 'SK텔레콤',
   '030200': 'KT',
   '032640': 'LG유플러스',
+
+  // 암호화폐
+  BTC: '비트코인',
+  ETH: '이더리움',
+  XRP: '리플',
+  SOL: '솔라나',
+  ADA: '카르다노',
+  DOGE: '도지코인',
+  AVAX: '아발란체',
+  DOT: '폴카닷',
+  MATIC: '폴리곤',
+  LINK: '체인링크',
+  UNI: '유니스왑',
+  ATOM: '코스모스',
+  LTC: '라이트코인',
+  XLM: '스텔라',
+  TRX: '트론',
+  SHIB: '시바이누',
+  SUI: '수이',
+  APT: '앱토스',
+  ARB: '아비트럼',
+  OP: '옵티미즘',
+  TON: '톤코인',
+  NEAR: '니어',
+  HBAR: '헤데라',
+  KLAY: '클레이튼',
 };
 
 /**

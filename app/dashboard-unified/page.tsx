@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import UnifiedNewsList from '@/components/unified/UnifiedNewsList';
 import { UnifiedArticle } from '@/components/unified/UnifiedNewsCard';
 import { SocialPlatform } from '@/lib/social-media/types';
+import { authenticatedFetch } from '@/lib/auth/authenticated-fetch';
 
 export default function UnifiedDashboard() {
   const [articles, setArticles] = useState<UnifiedArticle[]>([]);
@@ -27,7 +28,7 @@ export default function UnifiedDashboard() {
         limit: '100',
       });
 
-      const response = await fetch(`/api/news/unified?${params}`);
+      const response = await authenticatedFetch(`/api/news/unified?${params}`);
 
       if (!response.ok) {
         throw new Error('Failed to load articles');
@@ -45,7 +46,7 @@ export default function UnifiedDashboard() {
 
   const handleSummarize = async (articleId: string) => {
     try {
-      const response = await fetch('/api/summaries/generate', {
+      const response = await authenticatedFetch('/api/summaries/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ articleId }),
@@ -73,10 +74,10 @@ export default function UnifiedDashboard() {
 
   const handlePublish = async (articleId: string, platforms: SocialPlatform[]) => {
     try {
-      const response = await fetch('/api/social-media/publish', {
+      const response = await authenticatedFetch('/api/social-media/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId, platforms }),
+        body: JSON.stringify({ articleIds: [articleId], platforms }),
       });
 
       if (!response.ok) {
@@ -94,7 +95,7 @@ export default function UnifiedDashboard() {
         )
       );
 
-      alert(`발행 완료: ${data.summary.successCount}/${platforms.length} 플랫폼`);
+      alert(`발행 완료: ${data.totalSuccessCount}/${platforms.length} 플랫폼`);
     } catch (err) {
       console.error('Error publishing:', err);
       alert('발행 실패: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -195,7 +196,7 @@ export default function UnifiedDashboard() {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600">
-          <p>주식 뉴스 요약 서비스 · AI 기반 뉴스 점수 평가 및 자동 발행</p>
+          <p>주식/암호화폐 뉴스 요약 서비스 · AI 기반 뉴스 점수 평가 및 자동 발행</p>
           <p className="mt-1 text-xs text-gray-500">
             80점 이상: 자동 발행 | 80점 미만: 수동 선택
           </p>

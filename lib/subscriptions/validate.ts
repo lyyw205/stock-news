@@ -3,9 +3,19 @@ export function validateTicker(ticker: string): boolean {
     return false;
   }
 
-  // Must be exactly 6 digits, no spaces or other characters
-  const tickerRegex = /^\d{6}$/;
-  return tickerRegex.test(ticker);
+  // Stock ticker: exactly 6 digits
+  const stockTickerRegex = /^\d{6}$/;
+  if (stockTickerRegex.test(ticker)) {
+    return true;
+  }
+
+  // Crypto ticker: 2-5 uppercase letters
+  const cryptoTickerRegex = /^[A-Z]{2,5}$/;
+  if (cryptoTickerRegex.test(ticker)) {
+    return true;
+  }
+
+  return false;
 }
 
 export interface SubscriptionLimitResult {

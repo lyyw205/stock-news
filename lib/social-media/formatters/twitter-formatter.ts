@@ -8,10 +8,13 @@ import { NewsContent, FormattedContent } from '../types';
 const MAX_LENGTH = 280;
 
 export function formatForTwitter(news: NewsContent): FormattedContent {
-  const { ticker, title, summary, url } = news;
+  const { ticker, title, summary, url, category } = news;
 
-  // Generate hashtags
-  const hashtags = [`#${ticker}`, '#한국주식', '#뉴스'];
+  // Category-aware hashtags
+  const isCrypto = category === 'crypto';
+  const tickerTag = isCrypto ? `#${ticker}` : `#${ticker}`;
+  const categoryTag = isCrypto ? '#암호화폐' : '#한국주식';
+  const hashtags = [tickerTag, categoryTag, '#뉴스'];
   const hashtagText = hashtags.join(' ');
 
   // Calculate available space for content

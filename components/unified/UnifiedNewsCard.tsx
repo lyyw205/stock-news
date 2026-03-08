@@ -15,6 +15,7 @@ export interface UnifiedArticle {
   url: string;
   pubDate: string;
   sourceCount: number;
+  category?: 'stock' | 'crypto';
   scores: {
     visual: {
       impact: number;
@@ -114,7 +115,19 @@ export default function UnifiedNewsCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg font-bold text-blue-600">{article.ticker}</span>
+            {/* Category badge */}
+            {article.category === 'crypto' ? (
+              <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
+                암호화폐
+              </span>
+            ) : (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                주식
+              </span>
+            )}
+            <span className="text-lg font-bold text-blue-600">
+              {article.category === 'crypto' ? `$${article.ticker}` : article.ticker}
+            </span>
             <span className="text-gray-600">{getCompanyName(article.ticker)}</span>
             <span className="text-sm text-gray-500">{formatDate(article.pubDate)}</span>
             {article.sourceCount > 1 && (

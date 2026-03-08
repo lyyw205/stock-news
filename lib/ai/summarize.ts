@@ -1,5 +1,9 @@
 import { generateContent } from './gemini';
-import { formatSummarizePrompt, formatSummarizeWithScoresPrompt } from './prompts';
+import {
+  formatSummarizePrompt,
+  formatSummarizeWithScoresPrompt,
+  formatSummarizePromptByCategory,
+} from './prompts';
 import {
   NewsScore,
   VisualScores,
@@ -20,9 +24,10 @@ export interface SummaryWithScoresResult {
 export async function summarizeNews(
   title: string,
   description: string,
+  category?: 'stock' | 'crypto',
 ): Promise<SummaryResult> {
   try {
-    const prompt = formatSummarizePrompt(title, description);
+    const prompt = formatSummarizePromptByCategory(title, description, category);
     const summary = await generateContent(prompt);
 
     // Clean up the summary
